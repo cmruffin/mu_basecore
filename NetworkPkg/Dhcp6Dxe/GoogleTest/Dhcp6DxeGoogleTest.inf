@@ -21,7 +21,6 @@
   ../Dhcp6Io.c
   ../Dhcp6Utility.c
 
-
 [Packages]
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec

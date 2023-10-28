@@ -1,8 +1,8 @@
-CVE_2023_45229:
+CVE_2023_45230:
   commit_titles:
     - 'SECURITY PATCH MU_SEC_TCBZ4535 - Patch'
     - 'SECURITY PATCH MU_SEC_TCBZ4535 - Host Based Unit Test'
-  cve: CVE-2023-45229
+  cve: CVE-2023-45230
   date_reported: 2023-08-28 13:56 UTC 
   description: 'edk2/NetworkPkg: Buffer overflow in the DHCPv6 client via a long Server ID option'
   files_impacted:
