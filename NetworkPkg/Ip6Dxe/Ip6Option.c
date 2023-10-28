@@ -2,9 +2,9 @@
   IP6 option support functions and routines.
 
   Copyright (c) 2009 - 2010, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) Microsoft Corporation
 
   SPDX-License-Identifier: BSD-2-Clause-Patent
-
 **/
 
 #include "Ip6Impl.h"
@@ -138,6 +138,18 @@ Ip6IsNDOptionValid (
   }
 
   Offset = 0;
+
+  // MU_CHANGE TCBZ4536 [BEGIN] - Out-of-bounds read when handling a ND Redirect message with truncated options
+
+  //
+  // Cannot process truncated options.
+  // Cannot process options with a length of 0 as there is no Type field.
+  //
+  if (OptionLen < sizeof (IP6_OPTION_HEADER)) {
+    return FALSE;
+  }
+
+  // MU_CHANGE TCBZ4536 [END] - Out-of-bounds read when handling a ND Redirect message with truncated options
 
   //
   // RFC 4861 states that Neighbor Discovery packet can contain zero or more

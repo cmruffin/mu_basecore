@@ -24,8 +24,9 @@
   #
   # Build HOST_APPLICATION that tests NetworkPkg
   #
+  NetworkPkg/Ip6Dxe/GoogleTest/Ip6DxeGoogleTest.inf
   NetworkPkg/Dhcp6Dxe/GoogleTest/Dhcp6DxeGoogleTest.inf
-
+  
 # Despite these library classes being listed in [LibraryClasses] below, they are not needed for the host-based unit tests.
 [LibraryClasses]
   NetLib|NetworkPkg/Library/DxeNetLib/DxeNetLib.inf
@@ -104,6 +105,7 @@
 
   # This is supposed to be 0x1000_00001 according to the NetworkPkg.dec file, but that causes a build error.
   gEfiNetworkPkgTokenSpaceGuid.PcdDhcp6UidType|0x4|UINT8|0xFFFF
+
 
 [BuildOptions]
   *_*_*_CC_FLAGS = /WX-

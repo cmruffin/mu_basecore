@@ -1,3 +1,14 @@
+CVE_2023_45229:
+  commit_titles:
+    - 'SECURITY PATCH MU_SEC_TCBZ4534 - Patch'
+    - 'SECURITY PATCH MU_SEC_TCBZ4534 - Host Based Unit Test'
+  cve: CVE-2023-45229
+  date_reported: 2023-08-28 13:56 UTC
+  description: 'edk2/NetworkPkg: Out-of-bounds read when processing IA_NA/IA_TA options in a DHCPv6 Advertise message'
+  files_impacted:
+  - Dhcp6Dxe\Dhcp6Io.c
+  links:
+  - https://bugzilla.tianocore.org/show_bug.cgi?id=4534
 CVE_2023_45230:
   commit_titles:
     - 'SECURITY PATCH MU_SEC_TCBZ4535 - Patch'
@@ -9,3 +20,14 @@ CVE_2023_45230:
   - Dhcp6Dxe\Dhcp6Io.c
   links:
   - https://bugzilla.tianocore.org/show_bug.cgi?id=4535
+CVE_2023_45231:
+  commit_titles:
+    - 'SECURITY PATCH MU_SEC_TCBZ4536 - Patch'
+    - 'SECURITY PATCH MU_SEC_TCBZ4536 - Host Based Unit Test'
+  cve: CVE-2023-45231
+  date_reported: 2023-08-28 14:10 UTC
+  description: 'edk2/NetworkPkg: Out-of-bounds read when handling a ND Redirect message with truncated options'
+  files_impacted:
+  - Ip6Dxe\Ip6Option.c
+  links:
+  - https://bugzilla.tianocore.org/show_bug.cgi?id=4536
