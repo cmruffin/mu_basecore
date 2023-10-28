@@ -29,6 +29,9 @@
     "CompilerPlugin": {
         "DscPath": "NetworkPkg.dsc"
     },
+    "HostUnitTestCompilerPlugin": {
+        "DscPath": "NetworkPkgHostTest.dsc"
+    },
     "CharEncodingCheck": {
         "IgnoreFiles": []
     },
