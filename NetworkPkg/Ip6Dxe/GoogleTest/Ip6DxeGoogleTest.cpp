@@ -1,6 +1,5 @@
 /** @file
-  Acts as the main entry point for the tests for the Ip6Dxe module.
-
+  Acts as the main entry point for the tests for the Ip6Dxe driver.
   Copyright (c) Microsoft Corporation
   SPDX-License-Identifier: BSD-2-Clause-Patent
 **/

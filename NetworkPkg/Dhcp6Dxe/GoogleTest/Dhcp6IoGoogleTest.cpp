@@ -7,13 +7,13 @@
 #include <gtest/gtest.h>
 
 extern "C" {
-#include <Uefi.h>
-#include <Library/BaseLib.h>
-#include <Library/DebugLib.h>
-#include <Library/BaseMemoryLib.h>
-#include "../Dhcp6Impl.h"
-#include "../Dhcp6Utility.h"
-#include "Dhcp6IoGoogleTest.h"
+  #include <Uefi.h>
+  #include <Library/BaseLib.h>
+  #include <Library/DebugLib.h>
+  #include <Library/BaseMemoryLib.h>
+  #include "../Dhcp6Impl.h"
+  #include "../Dhcp6Utility.h"
+  #include "Dhcp6IoGoogleTest.h"
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -98,33 +98,33 @@ UdpIoRecvDatagram (
 
 class Dhcp6AppendOptionTest : public ::testing::Test {
 public:
-UINT8 *Buffer = NULL;
-EFI_DHCP6_PACKET *Packet;
+  UINT8 *Buffer = NULL;
+  EFI_DHCP6_PACKET *Packet;
 
 protected:
-// Add any setup code if needed
-virtual void
-SetUp (
-  )
-{
-  // Initialize any resources or variables
-  Buffer = (UINT8 *)AllocateZeroPool (DHCP6_PACKET_MAX_LEN);
-  ASSERT_NE (Buffer, (UINT8 *)NULL);
+  // Add any setup code if needed
+  virtual void
+  SetUp (
+    )
+  {
+    // Initialize any resources or variables
+    Buffer = (UINT8 *)AllocateZeroPool (DHCP6_PACKET_MAX_LEN);
+    ASSERT_NE (Buffer, (UINT8 *)NULL);
 
-  Packet       = (EFI_DHCP6_PACKET *)Buffer;
-  Packet->Size = DHCP6_PACKET_MAX_LEN;
-}
-
-// Add any cleanup code if needed
-virtual void
-TearDown (
-  )
-{
-  // Clean up any resources or variables
-  if (Buffer != NULL) {
-    FreePool (Buffer);
+    Packet       = (EFI_DHCP6_PACKET *)Buffer;
+    Packet->Size = DHCP6_PACKET_MAX_LEN;
   }
-}
+
+  // Add any cleanup code if needed
+  virtual void
+  TearDown (
+    )
+  {
+    // Clean up any resources or variables
+    if (Buffer != NULL) {
+      FreePool (Buffer);
+    }
+  }
 };
 
 // Test Description:
@@ -196,34 +196,34 @@ TEST_F (Dhcp6AppendOptionTest, ValidDataExpectSuccess) {
 
 class Dhcp6AppendETOptionTest : public ::testing::Test {
 public:
-UINT8 *Buffer = NULL;
-EFI_DHCP6_PACKET *Packet;
+  UINT8 *Buffer = NULL;
+  EFI_DHCP6_PACKET *Packet;
 
 protected:
-// Add any setup code if needed
-virtual void
-SetUp (
-  )
-{
-  // Initialize any resources or variables
-  Buffer = (UINT8 *)AllocateZeroPool (DHCP6_PACKET_MAX_LEN);
-  ASSERT_NE (Buffer, (UINT8 *)NULL);
+  // Add any setup code if needed
+  virtual void
+  SetUp (
+    )
+  {
+    // Initialize any resources or variables
+    Buffer = (UINT8 *)AllocateZeroPool (DHCP6_PACKET_MAX_LEN);
+    ASSERT_NE (Buffer, (UINT8 *)NULL);
 
-  Packet         = (EFI_DHCP6_PACKET *)Buffer;
-  Packet->Size   = DHCP6_PACKET_MAX_LEN;
-  Packet->Length = sizeof (EFI_DHCP6_HEADER);
-}
-
-// Add any cleanup code if needed
-virtual void
-TearDown (
-  )
-{
-  // Clean up any resources or variables
-  if (Buffer != NULL) {
-    FreePool (Buffer);
+    Packet         = (EFI_DHCP6_PACKET *)Buffer;
+    Packet->Size   = DHCP6_PACKET_MAX_LEN;
+    Packet->Length = sizeof (EFI_DHCP6_HEADER);
   }
-}
+
+  // Add any cleanup code if needed
+  virtual void
+  TearDown (
+    )
+  {
+    // Clean up any resources or variables
+    if (Buffer != NULL) {
+      FreePool (Buffer);
+    }
+  }
 };
 
 // Test Description:
@@ -293,46 +293,46 @@ TEST_F (Dhcp6AppendETOptionTest, ValidDataExpectSuccess) {
 
 class Dhcp6AppendIaOptionTest : public ::testing::Test {
 public:
-UINT8 *Buffer = NULL;
-EFI_DHCP6_PACKET *Packet;
-EFI_DHCP6_IA *Ia;
+  UINT8 *Buffer = NULL;
+  EFI_DHCP6_PACKET *Packet;
+  EFI_DHCP6_IA *Ia;
 
 protected:
-// Add any setup code if needed
-virtual void
-SetUp (
-  )
-{
-  // Initialize any resources or variables
-  Buffer = (UINT8 *)AllocateZeroPool (DHCP6_PACKET_MAX_LEN);
-  ASSERT_NE (Buffer, (UINT8 *)NULL);
+  // Add any setup code if needed
+  virtual void
+  SetUp (
+    )
+  {
+    // Initialize any resources or variables
+    Buffer = (UINT8 *)AllocateZeroPool (DHCP6_PACKET_MAX_LEN);
+    ASSERT_NE (Buffer, (UINT8 *)NULL);
 
-  Packet       = (EFI_DHCP6_PACKET *)Buffer;
-  Packet->Size = DHCP6_PACKET_MAX_LEN;
+    Packet       = (EFI_DHCP6_PACKET *)Buffer;
+    Packet->Size = DHCP6_PACKET_MAX_LEN;
 
-  Ia = (EFI_DHCP6_IA *)AllocateZeroPool (sizeof (EFI_DHCP6_IA) + sizeof (EFI_DHCP6_IA_ADDRESS) * 2);
-  ASSERT_NE (Ia, (EFI_DHCP6_IA *)NULL);
+    Ia = (EFI_DHCP6_IA *)AllocateZeroPool (sizeof (EFI_DHCP6_IA) + sizeof (EFI_DHCP6_IA_ADDRESS) * 2);
+    ASSERT_NE (Ia, (EFI_DHCP6_IA *)NULL);
 
-  CopyMem (Ia->IaAddress, mAllDhcpRelayAndServersAddress.Addr, sizeof (EFI_IPv6_ADDRESS));
-  CopyMem (Ia->IaAddress + 1, mAllDhcpRelayAndServersAddress.Addr, sizeof (EFI_IPv6_ADDRESS));
+    CopyMem (Ia->IaAddress, mAllDhcpRelayAndServersAddress.Addr, sizeof (EFI_IPv6_ADDRESS));
+    CopyMem (Ia->IaAddress + 1, mAllDhcpRelayAndServersAddress.Addr, sizeof (EFI_IPv6_ADDRESS));
 
-  Ia->IaAddressCount = 2;
-}
-
-// Add any cleanup code if needed
-virtual void
-TearDown (
-  )
-{
-  // Clean up any resources or variables
-  if (Buffer != NULL) {
-    FreePool (Buffer);
+    Ia->IaAddressCount = 2;
   }
 
-  if (Ia != NULL) {
-    FreePool (Ia);
+  // Add any cleanup code if needed
+  virtual void
+  TearDown (
+    )
+  {
+    // Clean up any resources or variables
+    if (Buffer != NULL) {
+      FreePool (Buffer);
+    }
+
+    if (Ia != NULL) {
+      FreePool (Ia);
+    }
   }
-}
 };
 
 // Test Description:
@@ -519,21 +519,21 @@ TEST_F (Dhcp6AppendIaOptionTest, IaTaValidDataExpectSuccess) {
 // Define a fixture for your tests if needed
 class Dhcp6SeekInnerOptionSafeTest : public ::testing::Test {
 protected:
-// Add any setup code if needed
-virtual void
-SetUp (
-  )
-{
-  // Initialize any resources or variables
-}
+  // Add any setup code if needed
+  virtual void
+  SetUp (
+    )
+  {
+    // Initialize any resources or variables
+  }
 
-// Add any cleanup code if needed
-virtual void
-TearDown (
-  )
-{
-  // Clean up any resources or variables
-}
+  // Add any cleanup code if needed
+  virtual void
+  TearDown (
+    )
+  {
+    // Clean up any resources or variables
+  }
 };
 
 // Test Description:
@@ -713,34 +713,34 @@ TEST_F (Dhcp6SeekInnerOptionSafeTest, InvalidOption) {
 
 class Dhcp6SeekStsOptionTest : public ::testing::Test {
 public:
-DHCP6_INSTANCE Instance      = { 0 };
-EFI_DHCP6_PACKET *Packet     = NULL;
-EFI_DHCP6_CONFIG_DATA Config = { 0 };
+  DHCP6_INSTANCE Instance      = { 0 };
+  EFI_DHCP6_PACKET *Packet     = NULL;
+  EFI_DHCP6_CONFIG_DATA Config = { 0 };
 
 protected:
-// Add any setup code if needed
-virtual void
-SetUp (
-  )
-{
-  // Allocate a packet
-  Packet = (EFI_DHCP6_PACKET *)AllocateZeroPool (PACKET_SIZE);
-  ASSERT_NE (Packet, NULL);
+  // Add any setup code if needed
+  virtual void
+  SetUp (
+    )
+  {
+    // Allocate a packet
+    Packet = (EFI_DHCP6_PACKET *)AllocateZeroPool (PACKET_SIZE);
+    ASSERT_NE (Packet, NULL);
 
-  // Initialize the packet
-  Packet->Size = PACKET_SIZE;
+    // Initialize the packet
+    Packet->Size = PACKET_SIZE;
 
-  Instance.Config = &Config;
-}
+    Instance.Config = &Config;
+  }
 
-// Add any cleanup code if needed
-virtual void
-TearDown (
-  )
-{
-  // Clean up any resources or variables
-  FreePool (Packet);
-}
+  // Add any cleanup code if needed
+  virtual void
+  TearDown (
+    )
+  {
+    // Clean up any resources or variables
+    FreePool (Packet);
+  }
 };
 
 // Test Description:

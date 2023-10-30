@@ -31,6 +31,28 @@ CVE_2023_45231:
   - Ip6Dxe\Ip6Option.c
   links:
   - https://bugzilla.tianocore.org/show_bug.cgi?id=4536
+CVE_2023_45232:
+  commit_titles:
+    - 'SECURITY PATCH MU_SEC_TCBZ4537 - Patch'
+    - 'SECURITY PATCH MU_SEC_TCBZ4537 - Host Based Unit Test'
+  cve: CVE-2023-45232
+  date_reported: 2023-08-28 14:20 UTC 
+  description: 'edk2/NetworkPkg: Infinite loop when parsing unknown options in the Destination Options header'
+  files_impacted:
+  - Ip6Dxe\Ip6Option.c
+  links:
+  - https://bugzilla.tianocore.org/show_bug.cgi?id=4537
+CVE_2023_45233:
+  commit_titles:
+    - 'SECURITY PATCH MU_SEC_TCBZ4538 - Patch'
+    - 'SECURITY PATCH MU_SEC_TCBZ4538 - Host Based Unit Test'
+  cve: CVE-2023-45232
+  date_reported: 2023-08-28 14:14 UTC
+  description: 'edk2/NetworkPkg: Infinite loop when parsing a PadN option in the Destination Options header '
+  files_impacted:
+  - Ip6Dxe\Ip6Option.c
+  links:
+  - https://bugzilla.tianocore.org/show_bug.cgi?id=4538
 CVE_2023_45234:
   commit_titles:
     - 'SECURITY PATCH MU_SEC_TCBZ4539 - Patch'

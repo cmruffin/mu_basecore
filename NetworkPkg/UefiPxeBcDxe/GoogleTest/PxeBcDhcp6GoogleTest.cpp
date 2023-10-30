@@ -7,12 +7,12 @@
 #include <gtest/gtest.h>
 
 extern "C" {
-#include <Uefi.h>
-#include <Library/BaseLib.h>
-#include <Library/DebugLib.h>
-#include "../PxeBcImpl.h"
-#include "../PxeBcDhcp6.h"
-#include "PxeBcDhcp6GoogleTest.h"
+  #include <Uefi.h>
+  #include <Library/BaseLib.h>
+  #include <Library/DebugLib.h>
+  #include "../PxeBcImpl.h"
+  #include "../PxeBcDhcp6.h"
+  #include "PxeBcDhcp6GoogleTest.h"
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -93,50 +93,50 @@ QueueDpc (
 
 class PxeBcHandleDhcp6OfferTest : public ::testing::Test {
 public:
-PXEBC_PRIVATE_DATA Private = { 0 };
-EFI_UDP6_PROTOCOL Udp6Read;
-EFI_PXE_BASE_CODE_MODE Mode = { 0 };
+  PXEBC_PRIVATE_DATA Private = { 0 };
+  EFI_UDP6_PROTOCOL Udp6Read;
+  EFI_PXE_BASE_CODE_MODE Mode = { 0 };
 
 protected:
-// Add any setup code if needed
-virtual void
-SetUp (
-  )
-{
-  Private.Dhcp6Request = (EFI_DHCP6_PACKET *)AllocateZeroPool (PACKET_SIZE);
+  // Add any setup code if needed
+  virtual void
+  SetUp (
+    )
+  {
+    Private.Dhcp6Request = (EFI_DHCP6_PACKET *)AllocateZeroPool (PACKET_SIZE);
 
-  // Need to setup the EFI_PXE_BASE_CODE_PROTOCOL
-  // The function under test really only needs the following:
-  //  UdpWrite
-  //  UdpRead
+    // Need to setup the EFI_PXE_BASE_CODE_PROTOCOL
+    // The function under test really only needs the following:
+    //  UdpWrite
+    //  UdpRead
 
-  Private.PxeBc.UdpWrite = MockUdpWrite;
-  Private.PxeBc.UdpRead  = MockUdpRead;
+    Private.PxeBc.UdpWrite = MockUdpWrite;
+    Private.PxeBc.UdpRead  = MockUdpRead;
 
-  // Need to setup EFI_UDP6_PROTOCOL
-  // The function under test really only needs the following:
-  //  Configure
+    // Need to setup EFI_UDP6_PROTOCOL
+    // The function under test really only needs the following:
+    //  Configure
 
-  Udp6Read.Configure = MockConfigure;
-  Private.Udp6Read   = &Udp6Read;
+    Udp6Read.Configure = MockConfigure;
+    Private.Udp6Read   = &Udp6Read;
 
-  // Need to setup the EFI_PXE_BASE_CODE_MODE
-  Private.PxeBc.Mode = &Mode;
+    // Need to setup the EFI_PXE_BASE_CODE_MODE
+    Private.PxeBc.Mode = &Mode;
 
-  // for this test it doesn't really matter what the Dhcpv6 ack is set to
-}
-
-// Add any cleanup code if needed
-virtual void
-TearDown (
-  )
-{
-  if (Private.Dhcp6Request != NULL) {
-    FreePool (Private.Dhcp6Request);
+    // for this test it doesn't really matter what the Dhcpv6 ack is set to
   }
 
-  // Clean up any resources or variables
-}
+  // Add any cleanup code if needed
+  virtual void
+  TearDown (
+    )
+  {
+    if (Private.Dhcp6Request != NULL) {
+      FreePool (Private.Dhcp6Request);
+    }
+
+    // Clean up any resources or variables
+  }
 };
 
 // Note:
@@ -161,22 +161,22 @@ TEST_F (PxeBcHandleDhcp6OfferTest, BasicUsageTest) {
 
 class PxeBcCacheDnsServerAddressTest : public ::testing::Test {
 public:
-PXEBC_PRIVATE_DATA Private = { 0 };
+  PXEBC_PRIVATE_DATA Private = { 0 };
 
 protected:
-// Add any setup code if needed
-virtual void
-SetUp (
-  )
-{
-}
+  // Add any setup code if needed
+  virtual void
+  SetUp (
+    )
+  {
+  }
 
-// Add any cleanup code if needed
-virtual void
-TearDown (
-  )
-{
-}
+  // Add any cleanup code if needed
+  virtual void
+  TearDown (
+    )
+  {
+  }
 };
 
 // Test Description
