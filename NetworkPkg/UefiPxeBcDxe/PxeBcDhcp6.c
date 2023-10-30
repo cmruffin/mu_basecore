@@ -3,6 +3,7 @@
 
   (C) Copyright 2014 Hewlett-Packard Development Company, L.P.<BR>
   Copyright (c) 2009 - 2018, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) Microsoft Corporation
 
   SPDX-License-Identifier: BSD-2-Clause-Patent
 
@@ -1312,6 +1313,47 @@ PxeBcSelectDhcp6Offer (
   }
 }
 
+// MU_CHANGE TCBZ4539 [BEGIN] -  Buffer overflow when processing DNS Servers option in a DHCPv6 Advertise message
+
+/**
+  Cache the DHCPv6 Server address
+
+  @param[in] Private               The pointer to PXEBC_PRIVATE_DATA.
+  @param[in] Cache6                The pointer to PXEBC_DHCP6_PACKET_CACHE.
+
+  @retval    EFI_SUCCESS           Cache the DHCPv6 Server address successfully.
+  @retval    EFI_OUT_OF_RESOURCES  Failed to allocate resources.
+  @retval    EFI_DEVICE_ERROR      The DNS Server Length provided by a untrusted
+                                   option is not 16 bytes (sizeof (EFI_IPv6_ADDRESS)).
+*/
+EFI_STATUS
+PxeBcCacheDnsServerAddress (
+  IN PXEBC_PRIVATE_DATA        *Private,
+  IN PXEBC_DHCP6_PACKET_CACHE  *Cache6
+  )
+{
+  UINT16  DnsServerLen;
+
+  DnsServerLen = NTOHS (Cache6->OptList[PXEBC_DHCP6_IDX_DNS_SERVER]->OpLen);
+
+  if (DnsServerLen != sizeof (EFI_IPv6_ADDRESS)) {
+    return EFI_DEVICE_ERROR;
+  }
+
+  ASSERT (Private->DnsServer != NULL);
+  Private->DnsServer = AllocateZeroPool (DnsServerLen);
+  if (Private->DnsServer == NULL) {
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  // DnsServer is a 16 byte buffer. The incoming data must be 16 bytes long.
+  CopyMem (Private->DnsServer, Cache6->OptList[PXEBC_DHCP6_IDX_DNS_SERVER]->Data, DnsServerLen);
+
+  return EFI_SUCCESS;
+}
+
+// MU_CHANGE TCBZ4539 [END] -  Buffer overflow when processing DNS Servers option in a DHCPv6 Advertise message
+
 /**
   Handle the DHCPv6 offer packet.
 
@@ -1335,6 +1377,7 @@ PxeBcHandleDhcp6Offer (
   UINT32                    SelectIndex;
   UINT32                    Index;
 
+  ASSERT (Private != NULL);
   ASSERT (Private->SelectIndex > 0);
   SelectIndex = (UINT32)(Private->SelectIndex - 1);
   ASSERT (SelectIndex < PXEBC_OFFER_MAX_NUM);
@@ -1345,12 +1388,13 @@ PxeBcHandleDhcp6Offer (
   // First try to cache DNS server address if DHCP6 offer provides.
   //
   if (Cache6->OptList[PXEBC_DHCP6_IDX_DNS_SERVER] != NULL) {
-    Private->DnsServer = AllocateZeroPool (NTOHS (Cache6->OptList[PXEBC_DHCP6_IDX_DNS_SERVER]->OpLen));
-    if (Private->DnsServer == NULL) {
-      return EFI_OUT_OF_RESOURCES;
+    // MU_CHANGE TCBZ4539 [BEGIN] -  Buffer overflow when processing DNS Servers option in a DHCPv6 Advertise message
+    Status = PxeBcCacheDnsServerAddress (Private, Cache6);
+    if (EFI_ERROR (Status)) {
+      return Status;
     }
 
-    CopyMem (Private->DnsServer, Cache6->OptList[PXEBC_DHCP6_IDX_DNS_SERVER]->Data, sizeof (EFI_IPv6_ADDRESS));
+    // MU_CHANGE TCBZ4539 [END] -  Buffer overflow when processing DNS Servers option in a DHCPv6 Advertise message
   }
 
   if (Cache6->OfferType == PxeOfferTypeDhcpBinl) {

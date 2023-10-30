@@ -26,7 +26,8 @@
   #
   NetworkPkg/Ip6Dxe/GoogleTest/Ip6DxeGoogleTest.inf
   NetworkPkg/Dhcp6Dxe/GoogleTest/Dhcp6DxeGoogleTest.inf
-  
+  NetworkPkg/UefiPxeBcDxe/GoogleTest/UefiPxeBcDxeGoogleTest.inf
+
 # Despite these library classes being listed in [LibraryClasses] below, they are not needed for the host-based unit tests.
 [LibraryClasses]
   NetLib|NetworkPkg/Library/DxeNetLib/DxeNetLib.inf
@@ -89,8 +90,7 @@
   # [LibraryClasses.ARM] and NULL mean link this library into all ARM images.
   #
   # MU_CHANGE Start
-!if $(TOOL_CHAIN_TAG) != VS2017 and $(TOOL_CHAIN_TAG) != VS2015 and $(TOOL_CHAIN_TAG) != VS2019
-  #NULL|ArmPkg/Library/CompilerIntrinsicsLib/CompilerIntrinsicsLib.inf
+!if $(TOOL_CHAIN_TAG) == VS2019 or $(TOOL_CHAIN_TAG) == VS2022
   NULL|MdePkg/Library/CompilerIntrinsicsLib/ArmCompilerIntrinsicsLib.inf
 !endif
   # MU_CHANGE End
