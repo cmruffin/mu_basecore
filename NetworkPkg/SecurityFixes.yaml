@@ -64,3 +64,14 @@ CVE_2023_45234:
   - UefiPxeBcDxe\PxeBcDhcp6.c
   links:
   - https://bugzilla.tianocore.org/show_bug.cgi?id=4539
+CVE_2023_45235:
+  commit_titles:
+    - 'SECURITY PATCH MU_SEC_TCBZ4540 - Patch'
+    - 'SECURITY PATCH MU_SEC_TCBZ4540 - Host Based Unit Test'
+  cve: CVE-2023-45235
+  date_reported: 2023-08-28 14:23 UTC
+  description: 'edk2/NetworkPkg: Buffer overflow when handling Server ID option from a DHCPv6 proxy Advertise message'
+  files_impacted:
+  - UefiPxeBcDxe\PxeBcDhcp6.c
+  links:
+  - https://bugzilla.tianocore.org/show_bug.cgi?id=4540

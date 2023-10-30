@@ -4,19 +4,17 @@
 # Copyright (c) Microsoft Corporation.<BR>
 # SPDX-License-Identifier: BSD-2-Clause-Patent
 ##
-    [Defines]
-    INF_VERSION    = 0x00010005
-    BASE_NAME      = UefiPxeBcDxeGoogleTest
-    FILE_GUID      = 77D45C64-EC1E-4174-887B-886E89FD1EDF
-    MODULE_TYPE    = HOST_APPLICATION
-    VERSION_STRING = 1.0
-    
-    #
-    # The following information is for reference only and not required by the build tools.
-    #
-    #  VALID_ARCHITECTURES           = IA32 X64
-    #
-    
+[Defines]
+  INF_VERSION         = 0x00010017
+  BASE_NAME           = UefiPxeBcDxeGoogleTest
+  FILE_GUID           = 0171A301-0E8F-4F1E-A946-24F0297CE872
+  VERSION_STRING      = 1.0
+  MODULE_TYPE         = HOST_APPLICATION
+#
+# The following information is for reference only and not required by the build tools.
+#
+#  VALID_ARCHITECTURES           = IA32 X64 AARCH64
+#
 [Sources]
   UefiPxeBcDxeGoogleTest.cpp
   PxeBcDhcp6GoogleTest.cpp
