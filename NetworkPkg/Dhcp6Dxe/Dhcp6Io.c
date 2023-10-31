@@ -1244,8 +1244,7 @@ Dhcp6SendRequestMsg (
              Dhcp6OptServerId
              );
   if (Option == NULL) {
-    Status = EFI_DEVICE_ERROR;
-    goto ON_ERROR;
+    return EFI_DEVICE_ERROR;
   }
 
   ServerId = (EFI_DHCP6_DUID *)(Option + 2);
@@ -1447,6 +1446,7 @@ Dhcp6SendDeclineMsg (
   //
   Packet = AllocateZeroPool (DHCP6_BASE_PACKET_SIZE);
   if (Packet == NULL) {
+    Status = EFI_OUT_OF_RESOURCES;
     goto ON_ERROR;
   }
 
@@ -1595,8 +1595,7 @@ Dhcp6SendReleaseMsg (
              Dhcp6OptServerId
              );
   if (Option == NULL) {
-    Status = EFI_DEVICE_ERROR;
-    goto ON_ERROR;
+    return EFI_DEVICE_ERROR;
   }
 
   ServerId = (EFI_DHCP6_DUID *)(Option + 2);
@@ -2169,6 +2168,7 @@ ON_ERROR:
 
   return Status;
 }
+
 // MU_CHANGE TCBZ4535 [END] - Buffer overflow in the DHCPv6 client via a long Server ID option
 
 /**
@@ -2320,11 +2320,12 @@ Dhcp6SendConfirmMsg (
 ON_ERROR:
 
   if (Packet) {
-    FreePool(Packet);
+    FreePool (Packet);
   }
 
   return Status;
 }
+
 // MU_CHANGE TCBZ4535 [END] - Buffer overflow in the DHCPv6 client via a long Server ID option
 
 /**
@@ -2812,7 +2813,6 @@ Dhcp6HandleAdvertiseMsg (
         // MU_CHANGE TCBZ4534 [BEGIN] - Buffer overflow in the DHCPv6 client via a long Server ID option
         Instance->AdPref = *(Option + OPT_HDR_LEN);
         // MU_CHANGE TCBZ4534 [END] - Buffer overflow in the DHCPv6 client via a long Server ID option
-
       }
     } else {
       //
@@ -2889,6 +2889,7 @@ Dhcp6HandleStateful (
   if ((Option == NULL) || (CompareMem (Option + OPT_HDR_LEN, ClientId->Duid, ClientId->Length) != 0)) {
     goto ON_CONTINUE;
   }
+
   // MU_CHANGE TCBZ4534 [END] - Buffer overflow in the DHCPv6 client via a long Server ID option
 
   //
