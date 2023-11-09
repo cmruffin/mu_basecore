@@ -4,7 +4,9 @@
   Copyright (c) Microsoft Corporation
   SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
-#include <gtest/gtest.h>
+#include <Library/GoogleTestLib.h>
+#include <GoogleTest/Library/MockUefiLib.h>
+#include <GoogleTest/Library/MockUefiRuntimeServicesTableLib.h>
 
 extern "C" {
   #include <Uefi.h>
@@ -19,7 +21,8 @@ extern "C" {
 // Definitions
 ///////////////////////////////////////////////////////////////////////////////
 
-#define PACKET_SIZE  (1500)
+#define PACKET_SIZE            (1500)
+#define REQUEST_OPTION_LENGTH  (120)
 
 typedef struct {
   UINT16    OptionCode;   // The option code for DHCP6_OPT_SERVER_ID (e.g., 0x03)
@@ -457,4 +460,194 @@ TEST_F (PxeBcRequestBootServiceTest, AttemptRequestOverFlowExpectFailure) {
   Packet->Size   = PACKET_SIZE;
 
   ASSERT_EQ (PxeBcRequestBootService (&(PxeBcRequestBootServiceTest::Private), Index), EFI_OUT_OF_RESOURCES);
+}
+
+TEST_F (PxeBcRequestBootServiceTest, AttemptMultipleRequestOverFlowExpectFailure) {
+  EFI_DHCP6_PACKET_OPTION  RequestOpt                              = { 0 }; // the data section doesn't really matter
+  UINT8                    RequestOptBuffer[REQUEST_OPTION_LENGTH] = { 0 };
+
+  RequestOpt.OpCode = HTONS (0x1337);
+  RequestOpt.OpLen  = HTONS (REQUEST_OPTION_LENGTH); // this length would overflow without a check
+
+  // make sure we have enough space for 10 of these options
+  ASSERT (REQUEST_OPTION_LENGTH * 10 > PACKET_SIZE);
+
+  UINT8             Index   = 0;
+  EFI_DHCP6_PACKET  *Packet = (EFI_DHCP6_PACKET *)&Private.Dhcp6Request[Index];
+  UINT8             *Cursor = (UINT8 *)(Packet->Dhcp6.Option);
+
+  // let's add 10 of these options
+  for (UINT8 i = 0; i < 10; i++) {
+    CopyMem (Cursor, &RequestOpt, sizeof (RequestOpt));
+    Cursor += sizeof (RequestOpt) - 1;
+    CopyMem (Cursor, RequestOptBuffer, REQUEST_OPTION_LENGTH);
+    Cursor += REQUEST_OPTION_LENGTH;
+  }
+
+  // Update the packet length
+  Packet->Length = (UINT16)(Cursor - (UINT8 *)Packet);
+  Packet->Size   = PACKET_SIZE;
+
+  // Make sure we're larger than the buffer we're trying to write into
+  ASSERT (Packet->Length > sizeof (EFI_PXE_BASE_CODE_DHCPV6_PACKET));
+
+  DEBUG ((DEBUG_INFO, "Packet->Length: %d\n", Packet->Length));
+
+  ASSERT_EQ (PxeBcRequestBootService (&(PxeBcRequestBootServiceTest::Private), Index), EFI_OUT_OF_RESOURCES);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// PxeBcDhcp6Discover Test
+///////////////////////////////////////////////////////////////////////////////
+
+class PxeBcDhcp6DiscoverTest : public ::testing::Test {
+public:
+  PXEBC_PRIVATE_DATA Private = { 0 };
+  EFI_UDP6_PROTOCOL Udp6Read;
+
+protected:
+  MockUefiRuntimeServicesTableLib RtServicesMock;
+
+  // Add any setup code if needed
+  virtual void
+  SetUp (
+    )
+  {
+    Private.Dhcp6Request = (EFI_DHCP6_PACKET *)AllocateZeroPool (PACKET_SIZE);
+
+    // Need to setup the EFI_PXE_BASE_CODE_PROTOCOL
+    // The function under test really only needs the following:
+    //  UdpWrite
+    //  UdpRead
+
+    Private.PxeBc.UdpWrite = MockUdpWrite;
+    Private.PxeBc.UdpRead  = MockUdpRead;
+
+    // Need to setup EFI_UDP6_PROTOCOL
+    // The function under test really only needs the following:
+    //  Configure
+
+    Udp6Read.Configure = MockConfigure;
+    Private.Udp6Read   = &Udp6Read;
+  }
+
+  // Add any cleanup code if needed
+  virtual void
+  TearDown (
+    )
+  {
+    if (Private.Dhcp6Request != NULL) {
+      FreePool (Private.Dhcp6Request);
+    }
+
+    // Clean up any resources or variables
+  }
+};
+
+// Test Description
+// This will cause an overflow by an untrusted packet during the option parsing
+TEST_F (PxeBcDhcp6DiscoverTest, BasicOverflowTest) {
+  EFI_IPv6_ADDRESS         DestIp     = { 0 };
+  EFI_DHCP6_PACKET_OPTION  RequestOpt = { 0 }; // the data section doesn't really matter
+
+  RequestOpt.OpCode = HTONS (0x1337);
+  RequestOpt.OpLen  = HTONS (0xFFFF); // overflow
+
+  UINT8  *Cursor = (UINT8 *)(Private.Dhcp6Request->Dhcp6.Option);
+
+  CopyMem (Cursor, &RequestOpt, sizeof (RequestOpt));
+  Cursor += sizeof (RequestOpt);
+
+  Private.Dhcp6Request->Length = (UINT16)(Cursor - (UINT8 *)Private.Dhcp6Request);
+
+  EXPECT_CALL (RtServicesMock, gRT_GetTime)
+    .WillOnce (::testing::Return (0));
+
+  ASSERT_EQ (
+    PxeBcDhcp6Discover (
+      &(PxeBcDhcp6DiscoverTest::Private),
+      0,
+      NULL,
+      FALSE,
+      (EFI_IP_ADDRESS *)&DestIp
+      ),
+    EFI_OUT_OF_RESOURCES
+    );
+}
+
+// Test Description
+// This will test that we can handle a packet with a valid option length
+TEST_F (PxeBcDhcp6DiscoverTest, BasicUsageTest) {
+  EFI_IPv6_ADDRESS         DestIp     = { 0 };
+  EFI_DHCP6_PACKET_OPTION  RequestOpt = { 0 }; // the data section doesn't really matter
+
+  RequestOpt.OpCode = HTONS (0x1337);
+  RequestOpt.OpLen  = HTONS (0x30);
+
+  UINT8  *Cursor = (UINT8 *)(Private.Dhcp6Request->Dhcp6.Option);
+
+  CopyMem (Cursor, &RequestOpt, sizeof (RequestOpt));
+  Cursor += sizeof (RequestOpt);
+  // data doesn't matter
+
+  Private.Dhcp6Request->Length = (UINT16)(Cursor - (UINT8 *)Private.Dhcp6Request);
+
+  EXPECT_CALL (RtServicesMock, gRT_GetTime)
+    .WillOnce (::testing::Return (0));
+
+  ASSERT_EQ (
+    PxeBcDhcp6Discover (
+      &(PxeBcDhcp6DiscoverTest::Private),
+      0,
+      NULL,
+      FALSE,
+      (EFI_IP_ADDRESS *)&DestIp
+      ),
+    EFI_SUCCESS
+    );
+}
+
+TEST_F (PxeBcDhcp6DiscoverTest, MultipleRequestsAttemptOverflow) {
+  EFI_IPv6_ADDRESS         DestIp     = { 0 };
+  EFI_DHCP6_PACKET_OPTION  RequestOpt = { 0 }; // the data section doesn't really matter
+
+  RequestOpt.OpCode = HTONS (0x1337);
+  RequestOpt.OpLen  = HTONS (REQUEST_OPTION_LENGTH); // this length would overflow without a check
+  UINT8  RequestOptBuffer[REQUEST_OPTION_LENGTH] = { 0 };
+
+  // make sure we have enough space for 10 of these options
+  ASSERT (REQUEST_OPTION_LENGTH * 10 > PACKET_SIZE);
+
+  UINT8             Index   = 0;
+  EFI_DHCP6_PACKET  *Packet = (EFI_DHCP6_PACKET *)&Private.Dhcp6Request[Index];
+  UINT8             *Cursor = (UINT8 *)(Packet->Dhcp6.Option);
+
+  // let's add 10 of these options - this should overflow
+  for (UINT8 i = 0; i < 10; i++) {
+    CopyMem (Cursor, &RequestOpt, sizeof (RequestOpt));
+    Cursor += sizeof (RequestOpt) - 1;
+    CopyMem (Cursor, RequestOptBuffer, REQUEST_OPTION_LENGTH);
+    Cursor += REQUEST_OPTION_LENGTH;
+  }
+
+  // Update the packet length
+  Packet->Length = (UINT16)(Cursor - (UINT8 *)Packet);
+  Packet->Size   = PACKET_SIZE;
+
+  // Make sure we're larger than the buffer we're trying to write into
+  ASSERT (Packet->Length > sizeof (EFI_PXE_BASE_CODE_DHCPV6_PACKET));
+
+  EXPECT_CALL (RtServicesMock, gRT_GetTime)
+    .WillOnce (::testing::Return (0));
+
+  ASSERT_EQ (
+    PxeBcDhcp6Discover (
+      &(PxeBcDhcp6DiscoverTest::Private),
+      0,
+      NULL,
+      FALSE,
+      (EFI_IP_ADDRESS *)&DestIp
+      ),
+    EFI_OUT_OF_RESOURCES
+    );
 }

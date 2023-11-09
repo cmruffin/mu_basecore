@@ -11,6 +11,9 @@
 
 #include "PxeBcImpl.h"
 
+// defines the format of the DHCPv6 option, See RFC 3315 for more information.
+#define OPT_HDR_LEN  (sizeof(EFI_DHCP6_PACKET_OPTION) - sizeof (UINT8))
+
 //
 // Well-known multi-cast address defined in section-24.1 of rfc-3315
 //
@@ -901,10 +904,10 @@ PxeBcRequestBootService (
   if (Request == NULL) {
     return EFI_DEVICE_ERROR;
   }
-  
+
   // MU_CHANGE TCBZ4540 [BEGIN] -  Buffer overflow when handling Server ID option from a DHCPv6 proxy Advertise message
   DiscoverLenNeeded = sizeof (EFI_PXE_BASE_CODE_DHCPV6_PACKET);
-  Discover         = AllocateZeroPool (DiscoverLenNeeded);
+  Discover          = AllocateZeroPool (DiscoverLenNeeded);
   // MU_CHANGE TCBZ4540 [END] -  Buffer overflow when handling Server ID option from a DHCPv6 proxy Advertise message
   if (Discover == NULL) {
     return EFI_OUT_OF_RESOURCES;
@@ -946,16 +949,14 @@ PxeBcRequestBootService (
     //
     // Check that the option length is valid.
     //
-    if ((sizeof (EFI_DHCP6_HEADER) + OpLen + 4) > DiscoverLenNeeded) {
+    if ((DiscoverLen + OpLen + OPT_HDR_LEN) > DiscoverLenNeeded) {
       Status = EFI_OUT_OF_RESOURCES;
       goto ON_ERROR;
     }
 
-    // MU_CHANGE TCBZ4540 [END] -  Buffer overflow when handling Server ID option from a DHCPv6 proxy Advertise message
-
-    CopyMem (DiscoverOpt, Option, OpLen + 4);
-    DiscoverOpt += (OpLen + 4);
-    DiscoverLen += (OpLen + 4);
+    CopyMem (DiscoverOpt, Option, OpLen + OPT_HDR_LEN);
+    DiscoverOpt += (OpLen + OPT_HDR_LEN);
+    DiscoverLen += (OpLen + OPT_HDR_LEN);
   }
 
   while (RequestLen < Request->Length) {
@@ -966,28 +967,27 @@ PxeBcRequestBootService (
         (OpCode != DHCP6_OPT_SERVER_ID)
         )
     {
-
-      // MU_CHANGE TCBZ4540 [BEGIN] -  Buffer overflow when handling Server ID option from a DHCPv6 proxy Advertise message
       //
       // Check that the option length is valid.
       //
-      if ((sizeof (EFI_DHCP6_HEADER) + OpLen + 4) > DiscoverLenNeeded) {
+      if ((DiscoverLen + OpLen + OPT_HDR_LEN) > DiscoverLenNeeded) {
         Status = EFI_OUT_OF_RESOURCES;
         goto ON_ERROR;
       }
-      // MU_CHANGE TCBZ4540 [END] -  Buffer overflow when handling Server ID option from a DHCPv6 proxy Advertise message
 
       //
       // Copy all the options except IA option and Server ID
       //
-      CopyMem (DiscoverOpt, RequestOpt, OpLen + 4);
-      DiscoverOpt += (OpLen + 4);
-      DiscoverLen += (OpLen + 4);
+      CopyMem (DiscoverOpt, RequestOpt, OpLen + OPT_HDR_LEN);
+      DiscoverOpt += (OpLen + OPT_HDR_LEN);
+      DiscoverLen += (OpLen + OPT_HDR_LEN);
     }
 
-    RequestOpt += (OpLen + 4);
-    RequestLen += (OpLen + 4);
+    RequestOpt += (OpLen + OPT_HDR_LEN);
+    RequestLen += (OpLen + OPT_HDR_LEN);
   }
+
+  // MU_CHANGE TCBZ4540 [END] -  Buffer overflow when handling Server ID option from a DHCPv6 proxy Advertise message
 
   //
   // Update Elapsed option in the package
@@ -2193,6 +2193,9 @@ PxeBcDhcp6Discover (
   UINT16                           OpLen;
   UINT32                           Xid;
   EFI_STATUS                       Status;
+  // MU_CHANGE TCBZ4540 [BEGIN] -  Buffer overflow when handling Server ID option from a DHCPv6 proxy Advertise message
+  UINTN  DiscoverLenNeeded;
+  // MU_CHANGE TCBZ4540 [END] -  Buffer overflow when handling Server ID option from a DHCPv6 proxy Advertise message
 
   PxeBc    = &Private->PxeBc;
   Mode     = PxeBc->Mode;
@@ -2208,7 +2211,10 @@ PxeBcDhcp6Discover (
     return EFI_DEVICE_ERROR;
   }
 
-  Discover = AllocateZeroPool (sizeof (EFI_PXE_BASE_CODE_DHCPV6_PACKET));
+  // MU_CHANGE TCBZ4540 [BEGIN] -  Buffer overflow when handling Server ID option from a DHCPv6 proxy Advertise message
+  DiscoverLenNeeded = sizeof (EFI_PXE_BASE_CODE_DHCPV6_PACKET);
+  Discover          = AllocateZeroPool (DiscoverLenNeeded);
+  // MU_CHANGE TCBZ4540 [END] -  Buffer overflow when handling Server ID option from a DHCPv6 proxy Advertise message
   if (Discover == NULL) {
     return EFI_OUT_OF_RESOURCES;
   }
@@ -2224,23 +2230,30 @@ PxeBcDhcp6Discover (
   DiscoverLen             = sizeof (EFI_DHCP6_HEADER);
   RequestLen              = DiscoverLen;
 
+  // MU_CHANGE TCBZ4540 [BEGIN] -  Buffer overflow when handling Server ID option from a DHCPv6 proxy Advertise message
   while (RequestLen < Request->Length) {
     OpCode = NTOHS (((EFI_DHCP6_PACKET_OPTION *)RequestOpt)->OpCode);
     OpLen  = NTOHS (((EFI_DHCP6_PACKET_OPTION *)RequestOpt)->OpLen);
     if ((OpCode != EFI_DHCP6_IA_TYPE_NA) &&
         (OpCode != EFI_DHCP6_IA_TYPE_TA))
     {
+      if (DiscoverLen + OpLen + OPT_HDR_LEN > DiscoverLenNeeded) {
+        Status = EFI_OUT_OF_RESOURCES;
+        goto ON_ERROR;
+      }
+
       //
       // Copy all the options except IA option.
       //
-      CopyMem (DiscoverOpt, RequestOpt, OpLen + 4);
-      DiscoverOpt += (OpLen + 4);
-      DiscoverLen += (OpLen + 4);
+      CopyMem (DiscoverOpt, RequestOpt, OpLen + OPT_HDR_LEN);
+      DiscoverOpt += (OpLen + OPT_HDR_LEN);
+      DiscoverLen += (OpLen + OPT_HDR_LEN);
     }
 
-    RequestOpt += (OpLen + 4);
-    RequestLen += (OpLen + 4);
+    RequestOpt += (OpLen + OPT_HDR_LEN);
+    RequestLen += (OpLen + OPT_HDR_LEN);
   }
+  // MU_CHANGE TCBZ4540 [END] -  Buffer overflow when handling Server ID option from a DHCPv6 proxy Advertise message
 
   Status = PxeBc->UdpWrite (
                     PxeBc,
