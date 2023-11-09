@@ -179,7 +179,11 @@ TEST_F (PxeBcHandleDhcp6OfferTest, BasicUsageTest) {
   ASSERT_EQ (PxeBcHandleDhcp6Offer (&(PxeBcHandleDhcp6OfferTest::Private)), EFI_DEVICE_ERROR);
 }
 
-class PxeBcCacheDnsServerAddressTest : public ::testing::Test {
+///////////////////////////////////////////////////////////////////////////////
+// PxeBcCacheDnsServerAddresses Tests
+///////////////////////////////////////////////////////////////////////////////
+
+class PxeBcCacheDnsServerAddressesTest : public ::testing::Test {
 public:
   PXEBC_PRIVATE_DATA Private = { 0 };
 
@@ -201,7 +205,7 @@ protected:
 
 // Test Description
 // Test that we cache the DNS server address from the DHCPv6 offer packet
-TEST_F (PxeBcCacheDnsServerAddressTest, BasicUsageTest) {
+TEST_F (PxeBcCacheDnsServerAddressesTest, BasicUsageTest) {
   UINT8                     SearchPattern[16] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF, 0xDE, 0xAD, 0xBE, 0xEF };
   EFI_DHCP6_PACKET_OPTION   *Option;
   PXEBC_DHCP6_PACKET_CACHE  *Cache6 = NULL;
@@ -219,7 +223,7 @@ TEST_F (PxeBcCacheDnsServerAddressTest, BasicUsageTest) {
 
   Private.DnsServer = NULL;
 
-  ASSERT_EQ (PxeBcCacheDnsServerAddress (&(PxeBcCacheDnsServerAddressTest::Private), Cache6), EFI_SUCCESS);
+  ASSERT_EQ (PxeBcCacheDnsServerAddresses (&(PxeBcCacheDnsServerAddressesTest::Private), Cache6), EFI_SUCCESS);
   ASSERT_NE (Private.DnsServer, NULL);
   ASSERT_EQ (CompareMem (Private.DnsServer, SearchPattern, sizeof (SearchPattern)), 0);
 
@@ -233,7 +237,7 @@ TEST_F (PxeBcCacheDnsServerAddressTest, BasicUsageTest) {
 }
 // Test Description
 // Test that we can prevent an overflow in the function
-TEST_F (PxeBcCacheDnsServerAddressTest, AttemptOverflowTest) {
+TEST_F (PxeBcCacheDnsServerAddressesTest, AttemptOverflowTest) {
   EFI_DHCP6_PACKET_OPTION   Option  = { 0 };
   PXEBC_DHCP6_PACKET_CACHE  *Cache6 = NULL;
 
@@ -246,7 +250,7 @@ TEST_F (PxeBcCacheDnsServerAddressTest, AttemptOverflowTest) {
 
   Private.DnsServer = NULL;
 
-  ASSERT_EQ (PxeBcCacheDnsServerAddress (&(PxeBcCacheDnsServerAddressTest::Private), Cache6), EFI_DEVICE_ERROR);
+  ASSERT_EQ (PxeBcCacheDnsServerAddresses (&(PxeBcCacheDnsServerAddressesTest::Private), Cache6), EFI_DEVICE_ERROR);
   ASSERT_EQ (Private.DnsServer, NULL);
 
   if (Private.DnsServer) {
@@ -256,7 +260,7 @@ TEST_F (PxeBcCacheDnsServerAddressTest, AttemptOverflowTest) {
 
 // Test Description
 // Test that we can prevent an underflow in the function
-TEST_F (PxeBcCacheDnsServerAddressTest, AttemptUnderflowTest) {
+TEST_F (PxeBcCacheDnsServerAddressesTest, AttemptUnderflowTest) {
   EFI_DHCP6_PACKET_OPTION   Option  = { 0 };
   PXEBC_DHCP6_PACKET_CACHE  *Cache6 = NULL;
 
@@ -269,8 +273,50 @@ TEST_F (PxeBcCacheDnsServerAddressTest, AttemptUnderflowTest) {
 
   Private.DnsServer = NULL;
 
-  ASSERT_EQ (PxeBcCacheDnsServerAddress (&(PxeBcCacheDnsServerAddressTest::Private), Cache6), EFI_DEVICE_ERROR);
+  ASSERT_EQ (PxeBcCacheDnsServerAddresses (&(PxeBcCacheDnsServerAddressesTest::Private), Cache6), EFI_DEVICE_ERROR);
   ASSERT_EQ (Private.DnsServer, NULL);
+
+  if (Private.DnsServer) {
+    FreePool (Private.DnsServer);
+  }
+}
+
+// Test Description
+// Test that we can handle recursive dns (multiple dns entries)
+TEST_F (PxeBcCacheDnsServerAddressesTest, MultipleDnsEntries) {
+  EFI_DHCP6_PACKET_OPTION   Option  = { 0 };
+  PXEBC_DHCP6_PACKET_CACHE  *Cache6 = NULL;
+
+  Private.SelectIndex                         = 1; // SelectIndex is 1-based
+  Cache6                                      = &Private.OfferBuffer[Private.SelectIndex - 1].Dhcp6;
+  Cache6->OptList[PXEBC_DHCP6_IDX_DNS_SERVER] = &Option;
+  // Setup the DHCPv6 offer packet
+  Cache6->OptList[PXEBC_DHCP6_IDX_DNS_SERVER]->OpCode = DHCP6_OPT_SERVER_ID;
+
+  EFI_IPv6_ADDRESS addresses[2] = {
+    // 2001:db8:85a3::8a2e:370:7334
+    {0x20, 0x01, 0x0d, 0xb8, 0x85, 0xa3, 0x00, 0x00, 0x00, 0x00, 0x8a, 0x2e, 0x03, 0x70, 0x73, 0x34},
+    // fe80::d478:91c3:ecd7:4ff9
+    {0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xd4, 0x78, 0x91, 0xc3, 0xec, 0xd7, 0x4f, 0xf9}
+  };
+
+
+  CopyMem(Cache6->OptList[PXEBC_DHCP6_IDX_DNS_SERVER]->Data, &addresses, sizeof(addresses));
+
+  Cache6->OptList[PXEBC_DHCP6_IDX_DNS_SERVER]->OpLen  = NTOHS (sizeof(addresses));
+
+  Private.DnsServer = NULL;
+
+  ASSERT_EQ (PxeBcCacheDnsServerAddresses (&(PxeBcCacheDnsServerAddressesTest::Private), Cache6), EFI_SUCCESS);
+
+  ASSERT_NE (Private.DnsServer, nullptr);
+
+  //
+  // This is expected to fail until DnsServer supports multiple DNS servers 
+  //
+  // This is tracked in https://bugzilla.tianocore.org/show_bug.cgi?id=1886
+  //
+  ASSERT_EQ (CompareMem(Private.DnsServer, &addresses, sizeof(addresses)), 0);
 
   if (Private.DnsServer) {
     FreePool (Private.DnsServer);

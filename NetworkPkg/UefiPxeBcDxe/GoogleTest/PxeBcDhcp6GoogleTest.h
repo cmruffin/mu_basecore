@@ -31,17 +31,16 @@ PxeBcHandleDhcp6Offer (
   );
 
 /**
-Cache the DHCPv6 Server address
-
-@param[in] Private               The pointer to PXEBC_PRIVATE_DATA.
-@param[in] Cache6                The pointer to PXEBC_DHCP6_PACKET_CACHE.
-
-@retval    EFI_SUCCESS           Cache the DHCPv6 Server address successfully.
-@retval    EFI_OUT_OF_RESOURCES  Failed to allocate resources.
-@retval    EFI_DEVICE_ERROR      Failed to cache the DHCPv6 Server address.
+  Cache the DHCPv6 DNS Server addresses
+  @param[in] Private               The pointer to PXEBC_PRIVATE_DATA.
+  @param[in] Cache6                The pointer to PXEBC_DHCP6_PACKET_CACHE.
+  @retval    EFI_SUCCESS           Cache the DHCPv6 DNS Server address successfully.
+  @retval    EFI_OUT_OF_RESOURCES  Failed to allocate resources.
+  @retval    EFI_DEVICE_ERROR      The DNS Server Address Length provided by a untrusted
+                                   option is not a multiple of 16 bytes (sizeof (EFI_IPv6_ADDRESS)).
 */
 EFI_STATUS
-PxeBcCacheDnsServerAddress (
+PxeBcCacheDnsServerAddresses (
   IN PXEBC_PRIVATE_DATA        *Private,
   IN PXEBC_DHCP6_PACKET_CACHE  *Cache6
   );

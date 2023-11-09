@@ -1349,18 +1349,16 @@ PxeBcSelectDhcp6Offer (
 // MU_CHANGE TCBZ4539 [BEGIN] -  Buffer overflow when processing DNS Servers option in a DHCPv6 Advertise message
 
 /**
-  Cache the DHCPv6 Server address
-
+  Cache the DHCPv6 DNS Server addresses
   @param[in] Private               The pointer to PXEBC_PRIVATE_DATA.
   @param[in] Cache6                The pointer to PXEBC_DHCP6_PACKET_CACHE.
-
-  @retval    EFI_SUCCESS           Cache the DHCPv6 Server address successfully.
+  @retval    EFI_SUCCESS           Cache the DHCPv6 DNS Server address successfully.
   @retval    EFI_OUT_OF_RESOURCES  Failed to allocate resources.
-  @retval    EFI_DEVICE_ERROR      The DNS Server Length provided by a untrusted
-                                   option is not 16 bytes (sizeof (EFI_IPv6_ADDRESS)).
+  @retval    EFI_DEVICE_ERROR      The DNS Server Address Length provided by a untrusted
+                                   option is not a multiple of 16 bytes (sizeof (EFI_IPv6_ADDRESS)).
 */
 EFI_STATUS
-PxeBcCacheDnsServerAddress (
+PxeBcCacheDnsServerAddresses (
   IN PXEBC_PRIVATE_DATA        *Private,
   IN PXEBC_DHCP6_PACKET_CACHE  *Cache6
   )
@@ -1368,19 +1366,42 @@ PxeBcCacheDnsServerAddress (
   UINT16  DnsServerLen;
 
   DnsServerLen = NTOHS (Cache6->OptList[PXEBC_DHCP6_IDX_DNS_SERVER]->OpLen);
-
-  if (DnsServerLen != sizeof (EFI_IPv6_ADDRESS)) {
+  //
+  // Make sure that the number is nonzero
+  //
+  if (DnsServerLen == 0) {
     return EFI_DEVICE_ERROR;
   }
 
+  //
+  // Make sure the DnsServerlen is a multiple of EFI_IPv6_ADDRESS (16)
+  //
+  if (DnsServerLen % sizeof (EFI_IPv6_ADDRESS) != 0) {
+    return EFI_DEVICE_ERROR;
+  }
+
+  //
+  // This code is currently written to only support a single DNS Server instead
+  // of multiple such as is spec defined (RFC3646, Section 3). The proper behavior
+  // would be to allocate the full space requested, CopyMem all of the data,
+  // and then add a DnsServerCount field to Private and update additional code
+  // that depends on this.
+  //
+  // To support multiple DNS servers the `AllocationSize` would need to be changed to DnsServerLen
+  //
+  // This is tracked in https://bugzilla.tianocore.org/show_bug.cgi?id=1886
+  //
   ASSERT (Private->DnsServer != NULL);
-  Private->DnsServer = AllocateZeroPool (DnsServerLen);
+  Private->DnsServer = AllocateZeroPool (sizeof (EFI_IPv6_ADDRESS));
   if (Private->DnsServer == NULL) {
     return EFI_OUT_OF_RESOURCES;
   }
 
-  // DnsServer is a 16 byte buffer. The incoming data must be 16 bytes long.
-  CopyMem (Private->DnsServer, Cache6->OptList[PXEBC_DHCP6_IDX_DNS_SERVER]->Data, DnsServerLen);
+  //
+  // Intentionally only copy over the first server address.
+  // To support multiple DNS servers, the `Length` would need to be changed to DnsServerLen
+  //
+  CopyMem (Private->DnsServer, Cache6->OptList[PXEBC_DHCP6_IDX_DNS_SERVER]->Data, sizeof (EFI_IPv6_ADDRESS));
 
   return EFI_SUCCESS;
 }
@@ -1422,7 +1443,7 @@ PxeBcHandleDhcp6Offer (
   //
   if (Cache6->OptList[PXEBC_DHCP6_IDX_DNS_SERVER] != NULL) {
     // MU_CHANGE TCBZ4539 [BEGIN] -  Buffer overflow when processing DNS Servers option in a DHCPv6 Advertise message
-    Status = PxeBcCacheDnsServerAddress (Private, Cache6);
+    Status = PxeBcCacheDnsServerAddresses (Private, Cache6);
     if (EFI_ERROR (Status)) {
       return Status;
     }
