@@ -58,6 +58,94 @@
 #define IP6_SERVICE_SIGNATURE   SIGNATURE_32 ('I', 'P', '6', 'S')
 
 //
+// Per RFC8200 Section 4.2
+//
+//   Two of the currently-defined extension headers -- the Hop-by-Hop
+//   Options header and the Destination Options header -- carry a variable
+//   number of type-length-value (TLV) encoded "options", of the following
+//   format:
+//
+//      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+- - - - - - - - -
+//      |  Option Type  |  Opt Data Len |  Option Data
+//      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+- - - - - - - - -
+//
+//      Option Type          8-bit identifier of the type of option.
+//
+//      Opt Data Len         8-bit unsigned integer.  Length of the Option
+//                           Data field of this option, in octets.
+//
+//      Option Data          Variable-length field.  Option-Type-specific
+//                           data.
+//
+#define IP6_SIZE_OF_OPT_TYPE                  (sizeof(UINT8))
+#define IP6_SIZE_OF_OPT_LEN                   (sizeof(UINT8))
+#define IP6_COMBINED_SIZE_OF_OPT_TAG_AND_LEN  (IP6_SIZE_OF_OPT_TYPE + IP6_SIZE_OF_OPT_LEN)
+#define IP6_OPT_LEN_OFFSET(a)  (a + IP6_SIZE_OF_OPT_TYPE)
+STATIC_ASSERT (
+               IP6_OPT_LEN_OFFSET (0) == 1,
+               "The Length field should be 1 octet (8 bits) past the start of the option"
+               );
+
+#define IP6_NEXT_OPTION(offset, length)  (offset + IP6_COMBINED_SIZE_OF_OPT_TAG_AND_LEN + length)
+STATIC_ASSERT (
+               IP6_NEXT_OPTION (0, 0) == 2,
+               "The next option is minimally the combined size of the option tag and length"
+               );
+
+//
+// For more information see RFC 8200, Section 4.3, 4.4, and 4.6
+//
+//  This example format is from section 4.6
+//  This does not apply to fragment headers
+//
+//     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//    |  Next Header  |  Hdr Ext Len  |                               |
+//    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               +
+//    |                                                               |
+//    .                                                               .
+//    .                  Header-Specific Data                         .
+//    .                                                               .
+//    |                                                               |
+//    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//
+//      Next Header           8-bit selector.  Identifies the type of
+//                            header immediately following the extension
+//                            header.  Uses the same values as the IPv4
+//                            Protocol field [IANA-PN].
+//
+//      Hdr Ext Len           8-bit unsigned integer.  Length of the
+//                            Destination Options header in 8-octet units,
+//                            not including the first 8 octets.
+
+//
+// These defines apply to the following:
+//   1. Hop by Hop
+//   2. Routing
+//   3. Destination
+//
+#define IP6_SIZE_OF_EXT_NEXT_HDR  (sizeof(UINT8))
+#define IP6_SIZE_OF_HDR_EXT_LEN   (sizeof(UINT8))
+
+#define IP6_COMBINED_SIZE_OF_NEXT_HDR_AND_LEN  (IP6_SIZE_OF_EXT_NEXT_HDR + IP6_SIZE_OF_HDR_EXT_LEN)
+STATIC_ASSERT (
+               IP6_COMBINED_SIZE_OF_NEXT_HDR_AND_LEN == 2,
+               "The combined size of Next Header and Len is two 8 bit fields"
+               );
+
+//
+// The "+ 1" in this calculation is because of the "not including the first 8 octets"
+// part of the definition (meaning the value of 0 represents 64 bits)
+//
+#define IP6_HDR_EXT_LEN(a)  (((UINT16)(a + IP6_SIZE_OF_EXT_NEXT_HDR)) * 8)
+
+// This is the maxmimum length permissible by a extension header
+// Length is UINT8 of 8 octets not including the first 8 octets
+#define IP6_MAX_EXT_DATA_LENGTH  (((UINT16)(MAX_UINT8 + 1) * 8) - IP6_COMBINED_SIZE_OF_NEXT_HDR_AND_LEN)
+STATIC_ASSERT (
+               IP6_MAX_EXT_DATA_LENGTH == 2046,
+               "Maximum data length is ((MAX_UINT8 + 1) * 8) - 2"
+               );
+//
 // The state of IP6 protocol. It starts from UNCONFIGED. if it is
 // successfully configured, it goes to CONFIGED. if configure NULL
 // is called, it becomes UNCONFIGED again. If (partly) destroyed, it

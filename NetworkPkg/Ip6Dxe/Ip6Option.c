@@ -9,30 +9,6 @@
 
 #include "Ip6Impl.h"
 
-// MU_CHANGE TCBZ4538 [BEGIN] - Infinite loop when parsing a PadN option in the Destination Options header
-//
-// Per RFC2460
-//
-//   Two of the currently-defined extension headers -- the Hop-by-Hop
-//   Options header and the Destination Options header -- carry a variable
-//   number of type-length-value (TLV) encoded "options", of the following
-//   format:
-//
-//      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+- - - - - - - - -
-//      |  Option Type  |  Opt Data Len |  Option Data
-//      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+- - - - - - - - -
-//
-//      Option Type          8-bit identifier of the type of option.
-//
-//      Opt Data Len         8-bit unsigned integer.  Length of the Option
-//                           Data field of this option, in octets.
-//
-//      Option Data          Variable-length field.  Option-Type-specific
-//                           data.
-//
-#define OPT_LEN_OFFSET  (1)
-#define SIZEOF_OPT_HDR  (2)
-// MU_CHANGE TCBZ4538 [END] - Infinite loop when parsing a PadN option in the Destination Options header
 
 // MU_CHANGE TCBZ4538 [BEGIN] - Infinite loop when parsing a PadN option in the Destination Options header
 
@@ -45,7 +21,7 @@
   @param[in]  Packet            The to be validated packet.
   @param[in]  Option            The first byte of the option.
   @param[in]  OptionLen         The length of all options, expressed in byte length of octets.
-                                Maximum length is 2046 bytes or (n*8) - 2 where n is 254.
+                                Maximum length is 2,038 bytes or (n*8) - 2 where n is 255.
   @param[in]  Pointer           Identifies the octet offset within
                                 the invoking packet where the error was detected.
 
@@ -69,6 +45,11 @@ Ip6IsOptionValid (
 
   if (Option == NULL) {
     ASSERT (Option != NULL);
+    return FALSE;
+  }
+
+  if (OptionLen <= 0 || OptionLen > IP6_MAX_EXT_DATA_LENGTH) {
+    ASSERT (OptionLen > 0 && OptionLen <= IP6_MAX_EXT_DATA_LENGTH);
     return FALSE;
   }
 
@@ -101,12 +82,8 @@ Ip6IsOptionValid (
         // It is a PadN option
         //
         // MU_CHANGE TCBZ4538 [BEGIN] - Infinite loop when parsing a PadN option in the Destination Options header
-        OptDataLen = *(Option + Offset + OPT_LEN_OFFSET);
-        if (OptDataLen > MAX_OPTION_DATA_LENGTH) {
-          return FALSE;
-        }
-
-        Offset = Offset + OptDataLen + SIZEOF_OPT_HDR;
+        OptDataLen = *(IP6_OPT_LEN_OFFSET(Option + Offset));
+        Offset = IP6_NEXT_OPTION(Offset, OptDataLen);
         // MU_CHANGE TCBZ4538 [END] - Infinite loop when parsing a PadN option in the Destination Options header
 
         break;
@@ -125,13 +102,8 @@ Ip6IsOptionValid (
           case Ip6OptionSkip:
             // MU_CHANGE TCBZ4537 [BEGIN] - Infinite loop when parsing unknown options in the Destination Options header
             // MU_CHANGE TCBZ4538 [BEGIN] - Infinite loop when parsing a PadN option in the Destination Options header
-
-            OptDataLen = *(Option + Offset + OPT_LEN_OFFSET);
-            if (OptDataLen > MAX_OPTION_DATA_LENGTH) {
-              return FALSE;
-            }
-
-            Offset = Offset + OptDataLen + SIZEOF_OPT_HDR;
+            OptDataLen = *(IP6_OPT_LEN_OFFSET(Option + Offset));
+            Offset = IP6_NEXT_OPTION(Offset, OptDataLen);
             // MU_CHANGE TCBZ4538 [END] - Infinite loop when parsing a PadN option in the Destination Options header
             // MU_CHANGE TCBZ4537 [END] - Infinite loop when parsing unknown options in the Destination Options header
             break;
@@ -500,7 +472,7 @@ Ip6IsExtsValid (
         Option = ExtHdrs + Offset;
         // MU_CHANGE TCBZ4538 [BEGIN] - Infinite loop when parsing a PadN option in the Destination Options header
         // The length expressed as 8 octet units
-        OptionLen = ((*Option + OPT_LEN_OFFSET) * 8 - SIZEOF_OPT_HDR);
+        OptionLen = IP6_HDR_EXT_LEN(*Option) - IP6_COMBINED_SIZE_OF_NEXT_HDR_AND_LEN;
         // MU_CHANGE TCBZ4538 [END] - Infinite loop when parsing a PadN option in the Destination Options header
         Option++;
         Offset++;
@@ -533,7 +505,7 @@ Ip6IsExtsValid (
           //
           // Ignore the routing header and proceed to process the next header.
           //
-          Offset = Offset + (RoutingHead->HeaderLen + 1) * 8;
+          Offset = Offset + IP6_HDR_EXT_LEN(RoutingHead->HeaderLen);
 
           if (UnFragmentLen != NULL) {
             *UnFragmentLen = Offset;
@@ -545,7 +517,7 @@ Ip6IsExtsValid (
           // type.
           //
           // MU_CHANGE TCBZ4538 [BEGIN] - Infinite loop when parsing a PadN option in the Destination Options header
-          Pointer = Offset + SIZEOF_OPT_HDR + sizeof (EFI_IP6_HEADER);
+          Pointer = Offset + IP6_COMBINED_SIZE_OF_NEXT_HDR_AND_LEN + sizeof (EFI_IP6_HEADER);
           // MU_CHANGE TCBZ4538 [END] - Infinite loop when parsing a PadN option in the Destination Options header
           if ((IpSb != NULL) && (Packet != NULL) &&
               !IP6_IS_MULTICAST (&Packet->Ip.Ip6->DestinationAddress))
@@ -633,7 +605,7 @@ Ip6IsExtsValid (
         // RFC2402, Payload length is specified in 32-bit words, minus "2".
         //
         // MU_CHANGE TCBZ4538 [BEGIN] - Infinite loop when parsing a PadN option in the Destination Options header
-        OptionLen = (UINT8)((*Option + SIZEOF_OPT_HDR) * 4);
+        OptionLen = ((UINT16)(*Option + 2) * 4);
         // MU_CHANGE TCBZ4538 [END] - Infinite loop when parsing a PadN option in the Destination Options header
         Offset = Offset + OptionLen;
         break;

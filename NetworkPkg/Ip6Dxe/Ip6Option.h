@@ -42,13 +42,6 @@ typedef enum {
   Ip6OptionMtu         = 5
 } IP6_OPTION_TYPE;
 
-//
-//  Applies to all options other than Pad1
-//  The maximum length of an option (including the type and length fields) is 254 octets.
-//  See RFC 2460, Section 4.2 Page 9 For description of the option format.
-// 
-#define MAX_OPTION_DATA_LENGTH (MAX_UINT8 - 0x2)
-
 /**
   Validate the IP6 extension header format for both the packets we received
   and that we will transmit. It will compute the ICMPv6 error message fields

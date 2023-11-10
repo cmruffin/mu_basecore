@@ -307,10 +307,10 @@ TEST_F (Ip6IsOptionValidTest, VerifyIp6OptionPadN) {
 
   optionHeader.Type   = Ip6OptionPadN;
   optionHeader.Length = 0xFF;
-  EXPECT_FALSE (Ip6IsOptionValid (IpSb, &Packet, (UINT8 *)&optionHeader, sizeof (optionHeader), 0));
+  EXPECT_TRUE (Ip6IsOptionValid (IpSb, &Packet, (UINT8 *)&optionHeader, sizeof (optionHeader), 0));
 
   optionHeader.Length = 0xFE;
-  EXPECT_FALSE (Ip6IsOptionValid (IpSb, &Packet, (UINT8 *)&optionHeader, sizeof (optionHeader), 0));
+  EXPECT_TRUE (Ip6IsOptionValid (IpSb, &Packet, (UINT8 *)&optionHeader, sizeof (optionHeader), 0));
 
   optionHeader.Length = 0xFD;
   EXPECT_TRUE (Ip6IsOptionValid (IpSb, &Packet, (UINT8 *)&optionHeader, sizeof (optionHeader), 0));
@@ -341,10 +341,10 @@ TEST_F (Ip6IsOptionValidTest, VerifyNoInfiniteLoopOnUnknownOptionLengthAttemptOv
 
   optionHeader.Type   = 23;   // Unknown Option
   optionHeader.Length = 0xFF;
-  EXPECT_FALSE (Ip6IsOptionValid (IpSb, &Packet, (UINT8 *)&optionHeader, sizeof (optionHeader), 0));
+  EXPECT_TRUE (Ip6IsOptionValid (IpSb, &Packet, (UINT8 *)&optionHeader, sizeof (optionHeader), 0));
 
   optionHeader.Length = 0xFE;
-  EXPECT_FALSE (Ip6IsOptionValid (IpSb, &Packet, (UINT8 *)&optionHeader, sizeof (optionHeader), 0));
+  EXPECT_TRUE (Ip6IsOptionValid (IpSb, &Packet, (UINT8 *)&optionHeader, sizeof (optionHeader), 0));
 
   optionHeader.Length = 0xFD;
   EXPECT_TRUE (Ip6IsOptionValid (IpSb, &Packet, (UINT8 *)&optionHeader, sizeof (optionHeader), 0));
@@ -412,4 +412,56 @@ TEST_F (Ip6IsOptionValidTest, MultiOptionSupport) {
   HdrLen = (UINT16)(Cursor - ExtHdr);
 
   EXPECT_TRUE (Ip6IsOptionValid (IpSb, &Packet, ExtHdr, HdrLen, 0));
+}
+
+// Test Description
+// Verify that a OptionLength that is too small fails
+TEST_F (Ip6IsOptionValidTest, VerifyOptionLengthTooSmall) {
+  NET_BUF  Packet = { 0 };
+  // we need to define enough of the packet to make the function work
+  // The function being tested will pass IpSb to Ip6SendIcmpError which is defined above
+  UINT32  DeadCode = 0xDeadC0de;
+  // Don't actually use this pointer, just pass it to the function, nothing will be done with it
+  IP6_SERVICE  *IpSb = (IP6_SERVICE *)&DeadCode;
+
+  EFI_IPv6_ADDRESS  SourceAddress      = { 0x20, 0x01, 0x0d, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x42, 0x83, 0x29 };
+  EFI_IPv6_ADDRESS  DestinationAddress = { 0x20, 0x01, 0x0d, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x42, 0x83, 0x29 };
+  EFI_IP6_HEADER    Ip6Header          = { 0 };
+
+  Ip6Header.SourceAddress      = SourceAddress;
+  Ip6Header.DestinationAddress = DestinationAddress;
+  Packet.Ip.Ip6                = &Ip6Header;
+
+  IP6_OPTION_HEADER  optionHeader;
+
+  optionHeader.Type   = Ip6OptionPad1;
+  optionHeader.Length = 0;
+
+  EXPECT_FALSE (Ip6IsOptionValid (IpSb, &Packet, (UINT8 *)&optionHeader, 0, 0));
+}
+
+// Test Description
+// Verify that a OptionLength that is too large fails
+TEST_F (Ip6IsOptionValidTest, VerifyOptionLengthTooLarge) {
+  NET_BUF  Packet = { 0 };
+  // we need to define enough of the packet to make the function work
+  // The function being tested will pass IpSb to Ip6SendIcmpError which is defined above
+  UINT32  DeadCode = 0xDeadC0de;
+  // Don't actually use this pointer, just pass it to the function, nothing will be done with it
+  IP6_SERVICE  *IpSb = (IP6_SERVICE *)&DeadCode;
+
+  EFI_IPv6_ADDRESS  SourceAddress      = { 0x20, 0x01, 0x0d, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x42, 0x83, 0x29 };
+  EFI_IPv6_ADDRESS  DestinationAddress = { 0x20, 0x01, 0x0d, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x42, 0x83, 0x29 };
+  EFI_IP6_HEADER    Ip6Header          = { 0 };
+
+  Ip6Header.SourceAddress      = SourceAddress;
+  Ip6Header.DestinationAddress = DestinationAddress;
+  Packet.Ip.Ip6                = &Ip6Header;
+
+  IP6_OPTION_HEADER  optionHeader;
+
+  optionHeader.Type   = Ip6OptionPad1;
+  optionHeader.Length = 0;
+
+  EXPECT_FALSE (Ip6IsOptionValid (IpSb, &Packet, (UINT8 *)&optionHeader, MAX_UINT8, 0));
 }
