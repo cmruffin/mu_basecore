@@ -31,6 +31,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/DevicePathLib.h>
 #include <Library/PrintLib.h>
 #include <Library/UefiLib.h>
+#include <Protocol/Rng.h>
 
 #define NIC_ITEM_CONFIG_SIZE  (sizeof (NIC_IP4_CONFIG_INFO) + sizeof (EFI_IP4_ROUTE_TABLE) * MAX_IP4_CONFIG_IN_VARIABLE)
 #define DEFAULT_ZERO_START    ((UINTN) ~0)
@@ -886,6 +887,8 @@ Ip6Swap128 (
 /**
   Initialize a random seed using current time and monotonic count.
 
+  Note: this is now a fallback function and should not be used in new code.
+
   Get current time and monotonic count first. Then initialize a random seed
   based on some basic mathematics operation on the hour, day, minute, second,
   nanosecond and year of the current time and the monotonic count value.
@@ -894,14 +897,19 @@ Ip6Swap128 (
 
 **/
 UINT32
-EFIAPI
-NetRandomInitSeed (
+NetRandomInitSeedFallback (
   VOID
   )
 {
   EFI_TIME  Time;
   UINT32    Seed;
   UINT64    MonotonicCount;
+
+  // Alert the developer that this function is deprecated.
+  // This function is deprecated because it is not cryptographically secure.
+  // Properly seeded random numbers should be generated using the EFI_RNG_PROTOCOL.
+  DEBUG ((DEBUG_WARN, "NetRandomInitSeedFallback() is deprecated!\n"));
+  ASSERT (FALSE);
 
   gRT->GetTime (&Time, NULL);
   Seed  = (Time.Hour << 24 | Time.Day << 16 | Time.Minute << 8 | Time.Second);
@@ -911,6 +919,58 @@ NetRandomInitSeed (
   gBS->GetNextMonotonicCount (&MonotonicCount);
   Seed += (UINT32)MonotonicCount;
 
+  return Seed;
+}
+
+/*
+Generate a 32-bit pseudo-random number. 
+
+@param Output - The buffer to store the generated random number.
+ 
+@return EFI_SUCCESS on success, error code on failure.
+*/
+EFI_STATUS
+PseudoRandomU32(
+  UINT32* Output
+  )
+{
+  EFI_RNG_PROTOCOL  *RngProtocol;
+  EFI_STATUS        Status;
+
+  Status = gBS->LocateProtocol (&gEfiRngProtocolGuid, NULL, (VOID **)&RngProtocol);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Failed to locate EFI_RNG_PROTOCOL: %r\n", Status));
+    ASSERT_EFI_ERROR (Status);
+    return Status;
+  }
+  
+  Status = RngProtocol->GetRNG (RngProtocol, &gEfiRngAlgorithmSp80090Hash256Guid, sizeof (*Output), (UINT8 *)Output);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Failed to generate random data: %r\n", Status));
+    ASSERT_EFI_ERROR (Status);
+    return Status;
+  }
+
+  return EFI_SUCCESS;
+}
+
+/*
+  Initialize a random seed using the EFI_RNG_PROTOCOL or a fallback function if the protocol is not available.
+
+  @return The random seeded from either the EFI_RNG_PROTOCOL or the fallback function (time based).
+*/
+UINT32
+EFIAPI
+NetRandomInitSeed (
+  VOID
+  )
+{
+  UINT32 Seed;
+
+  if (EFI_ERROR (PseudoRandomU32 (&Seed))) {
+    Seed = NetRandomInitSeedFallback ();
+  }
+  
   return Seed;
 }
 
