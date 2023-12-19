@@ -555,7 +555,7 @@ NetRandomInitSeed() which if the platform supports it will use the RNG Protocol 
 get a random seed. If the platform does not support the RNG Protocol then the seed is
 initialized using the current time and monotonic count.
 
-See https://en.wikipedia.org/wiki/Linear_congruential_generator for more details.
+See https://wikipedia.org/wiki/Linear_congruential_generator for more details.
 */
 #define NET_RANDOM(Seed)  ((UINT32) ((UINT32) (Seed) * 1103515245UL + 12345) % 4294967295UL)
 
