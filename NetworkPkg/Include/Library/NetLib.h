@@ -539,6 +539,20 @@ extern EFI_IPv4_ADDRESS  mZeroIp4Addr;
 #define TICKS_PER_MS      10000U
 #define TICKS_PER_SECOND  10000000U
 
+/*
+This is a linear congruential generator, which is defined by the recurrence relation:
+X(n+1) = (a * X(n) + c) mod m
+
+where:
+  m = 2^32
+  a = Seed
+  c = 12345
+  X(0) = 1103515245
+
+Generally this is considered a bad random number generator, but it is good enough for
+embedded systems assuming the seed is not predictable.
+See https://en.wikipedia.org/wiki/Linear_congruential_generator for more details.
+*/
 #define NET_RANDOM(Seed)  ((UINT32) ((UINT32) (Seed) * 1103515245UL + 12345) % 4294967295UL)
 
 /**
