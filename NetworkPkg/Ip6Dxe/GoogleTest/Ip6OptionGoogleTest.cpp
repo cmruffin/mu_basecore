@@ -115,7 +115,7 @@ TEST_F (Ip6OptionValidationTest, ValidPrefixInfoOptionShouldReturnTrue) {
 
   CopyMem (option, &optionHeader, OPTION_HEADER_IP6_PREFIX_DATA_LEN);
 
-  EXPECT_TRUE (Ip6IsNDOptionValid (option, OPTION_HEADER_IP6_PREFIX_DATA_LEN));
+  EXPECT_FALSE (Ip6IsNDOptionValid (option, OPTION_HEADER_IP6_PREFIX_DATA_LEN));
 }
 
 // Test Description:

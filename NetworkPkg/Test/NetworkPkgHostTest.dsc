@@ -76,7 +76,6 @@
 [LibraryClasses.X64]
   # Provide StackCookie support lib so that we can link to /GS exports for VS builds
   RngLib|MdePkg/Library/BaseRngLib/BaseRngLib.inf
-  NULL|MdePkg/Library/BaseBinSecurityLibRng/BaseBinSecurityLibRng.inf
 !endif
 
 [LibraryClasses.common.UEFI_DRIVER]
