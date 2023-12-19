@@ -49,8 +49,8 @@
   gEfiSmbiosTableGuid                           ## SOMETIMES_CONSUMES  ## SystemTable
   gEfiSmbios3TableGuid                          ## SOMETIMES_CONSUMES  ## SystemTable
   gEfiAdapterInfoMediaStateGuid                 ## SOMETIMES_CONSUMES
-
-
+  gEfiRngAlgorithmSp80090Hash256Guid            ## CONSUMES
+  
 [Protocols]
   gEfiSimpleNetworkProtocolGuid                 ## SOMETIMES_CONSUMES
   gEfiManagedNetworkProtocolGuid                ## SOMETIMES_CONSUMES
