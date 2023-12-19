@@ -549,8 +549,12 @@ where:
   c = 12345
   X(0) = 1103515245
 
-Generally this is considered a bad random number generator, but it is good enough for
-embedded systems assuming the seed is not predictable.
+Generally this is considered a weak random number generator but it is good enough for
+embedded systems assuming the seed is not predictable. The seed is initialized using
+NetRandomInitSeed() which if the platform supports it will use the RNG Protocol to
+get a random seed. If the platform does not support the RNG Protocol then the seed is
+initialized using the current time and monotonic count.
+
 See https://en.wikipedia.org/wiki/Linear_congruential_generator for more details.
 */
 #define NET_RANDOM(Seed)  ((UINT32) ((UINT32) (Seed) * 1103515245UL + 12345) % 4294967295UL)
