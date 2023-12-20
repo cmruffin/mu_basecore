@@ -277,7 +277,6 @@ GetDns4ServerFromDhcp4 (
   EFI_DHCP4_TRANSMIT_RECEIVE_TOKEN  Token;
   BOOLEAN                           IsDone;
   UINTN                             Index;
-  UINT32                            Seed;
 
   Image      = Instance->Service->ImageHandle;
   Controller = Instance->Service->ControllerHandle;
@@ -297,7 +296,7 @@ GetDns4ServerFromDhcp4 (
 
   Status = PseudoRandomU32 (&Random);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Failed to generate random seed using EFI_RNG_PROTOCOL: %r\n", Status));
+    DEBUG ((DEBUG_ERROR, "Failed to generate random number: %r\n", Status));
     return Status;
   }
 

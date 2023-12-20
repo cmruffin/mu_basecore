@@ -892,7 +892,10 @@ Generate a Random output data given a length.
 @param[out] Output - The buffer to store the generated random data.
 @param[in] OutputLength - The length of the output buffer.
 
-@return EFI_SUCCESS on success, error code on failure.
+@retval EFI_SUCCESS           On Success
+@retval EFI_INVALID_PARAMETER Pointer is null or size is zero
+@retval EFI_NOT_FOUND         RNG protocol not found
+@Retval Others                Error from RngProtocol->GetRNG()
 */
 EFI_STATUS
 PseudoRandom (
@@ -902,6 +905,10 @@ PseudoRandom (
 {
   EFI_RNG_PROTOCOL  *RngProtocol;
   EFI_STATUS        Status;
+
+  if (Output == NULL || OutputLength == 0) {
+    return EFI_INVALID_PARAMETER;
+  }
 
   Status = gBS->LocateProtocol (&gEfiRngProtocolGuid, NULL, (VOID **)&RngProtocol);
   if (EFI_ERROR (Status)) {
@@ -923,13 +930,14 @@ PseudoRandom (
 /*
 Generate a 32-bit pseudo-random number.
 
-@param Output - The buffer to store the generated random number.
+@param[out] Output - The buffer to store the generated random number.
 
 @return EFI_SUCCESS on success, error code on failure.
 */
 EFI_STATUS
+EFIAPI
 PseudoRandomU32 (
-  UINT32  *Output
+  OUT UINT32 *Output
   )
 {
   return PseudoRandom (Output, sizeof (*Output));

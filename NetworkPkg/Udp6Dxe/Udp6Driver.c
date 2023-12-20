@@ -601,7 +601,7 @@ Udp6DriverEntryPoint (
 
   Status = PseudoRandomU32 (&Random);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Failed to generate random seed using EFI_RNG_PROTOCOL: %r\n", Status));
+    DEBUG ((DEBUG_ERROR, "Failed to generate random number: %r\n", Status));
     return Status;
   }
 

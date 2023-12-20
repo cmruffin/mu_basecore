@@ -585,6 +585,7 @@ Generate a 32-bit pseudo-random number.
 @return EFI_SUCCESS on success, error code on failure.
 */
 EFI_STATUS
+EFIAPI
 PseudoRandomU32 (
   OUT  UINT32  *Output
   );
