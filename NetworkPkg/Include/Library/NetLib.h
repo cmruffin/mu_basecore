@@ -580,13 +580,13 @@ NetPutUint32 (
 /*
 Generate a 32-bit pseudo-random number.
 
-@param Output - The buffer to store the generated random number.
+@param[out] Output - The buffer to store the generated random number.
 
 @return EFI_SUCCESS on success, error code on failure.
 */
 EFI_STATUS
 PseudoRandomU32 (
-  UINT32  *Output
+  OUT  UINT32  *Output
   );
 
 #define NET_LIST_USER_STRUCT(Entry, Type, Field)        \
