@@ -904,6 +904,7 @@ NetRandomInitSeedFallback (
   EFI_TIME  Time;
   UINT32    Seed;
   UINT64    MonotonicCount;
+  EFI_STATUS Status;
 
   // Alert the developer that this function is deprecated.
   // This function is deprecated because it is not cryptographically secure.
@@ -911,12 +912,27 @@ NetRandomInitSeedFallback (
   DEBUG ((DEBUG_WARN, "NetRandomInitSeedFallback() is deprecated!\n"));
   ASSERT (FALSE);
 
-  gRT->GetTime (&Time, NULL);
+  Status = gRT->GetTime (&Time, NULL);
+  if (EFI_ERROR (Status)) {
+
+    // Alert the developer that the time could not be retrieved.
+    // This should be fatal, but we don't want to break existing code.
+    DEBUG ((DEBUG_ERROR, "Failed to get current time: %r\n", Status));
+    ASSERT_EFI_ERROR (Status);
+  }
+
   Seed  = (Time.Hour << 24 | Time.Day << 16 | Time.Minute << 8 | Time.Second);
   Seed ^= Time.Nanosecond;
   Seed ^= Time.Year << 7;
 
-  gBS->GetNextMonotonicCount (&MonotonicCount);
+  Status = gBS->GetNextMonotonicCount (&MonotonicCount);
+  if (EFI_ERROR (Status)) {
+    // Alert the developer that the monotonic count could not be retrieved.
+    // This should be fatal, but we don't want to break existing code.
+    DEBUG ((DEBUG_ERROR, "Failed to get Next Monotonic Count: %r\n", Status));
+    ASSERT_EFI_ERROR (Status);
+  }
+
   Seed += (UINT32)MonotonicCount;
 
   return Seed;
