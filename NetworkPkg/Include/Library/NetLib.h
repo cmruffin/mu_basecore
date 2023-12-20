@@ -539,26 +539,6 @@ extern EFI_IPv4_ADDRESS  mZeroIp4Addr;
 #define TICKS_PER_MS      10000U
 #define TICKS_PER_SECOND  10000000U
 
-/*
-This is a linear congruential generator, which is defined by the recurrence relation:
-X(n+1) = (a * X(n) + c) mod m
-
-where:
-  m = 2^32
-  a = Seed
-  c = 12345
-  X(0) = 1103515245
-
-Generally this is considered a weak random number generator but it is good enough for
-embedded systems assuming the seed is not predictable. The seed is initialized using
-NetRandomInitSeed() which if the platform supports it will use the RNG Protocol to
-get a random seed. If the platform does not support the RNG Protocol then the seed is
-initialized using the current time and monotonic count.
-
-See https://wikipedia.org/wiki/Linear_congruential_generator for more details.
-*/
-#define NET_RANDOM(Seed)  ((UINT32) ((UINT32) (Seed) * 1103515245UL + 12345) % 4294967295UL)
-
 /**
   Extract a UINT32 from a byte stream.
 
@@ -597,20 +577,16 @@ NetPutUint32 (
   IN     UINT32  Data
   );
 
-/**
-  Initialize a random seed using current time and monotonic count.
+/*
+Generate a 32-bit pseudo-random number.
 
-  Get current time and monotonic count first. Then initialize a random seed
-  based on some basic mathematics operation on the hour, day, minute, second,
-  nanosecond and year of the current time and the monotonic count value.
+@param Output - The buffer to store the generated random number.
 
-  @return The random seed initialized with current time.
-
-**/
-UINT32
-EFIAPI
-NetRandomInitSeed (
-  VOID
+@return EFI_SUCCESS on success, error code on failure.
+*/
+EFI_STATUS
+PseudoRandomU32 (
+  UINT32  *Output
   );
 
 #define NET_LIST_USER_STRUCT(Entry, Type, Field)        \
