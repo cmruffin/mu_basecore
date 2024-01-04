@@ -724,6 +724,9 @@ TcpInput (
   TCP_SEQNO   Urg;
   UINT16      Checksum;
   INT32       Usable;
+  // MU_CHANGE TCBZ4541 [BEGIN] - ISN generation is not cryptographically strong
+  EFI_STATUS  Status;
+  // MU_CHANGE TCBZ4541 [END] - ISN generation is not cryptographically strong
 
   ASSERT ((Version == IP_VERSION_4) || (Version == IP_VERSION_6));
 
@@ -884,7 +887,19 @@ TcpInput (
       Tcb->LocalEnd.Port  = Head->DstPort;
       Tcb->RemoteEnd.Port = Head->SrcPort;
 
-      TcpInitTcbLocal (Tcb);
+      // MU_CHANGE TCBZ4541 [BEGIN] - ISN generation is not cryptographically strong
+      Status = TcpInitTcbLocal (Tcb);
+      if (EFI_ERROR(Status)) {
+        DEBUG (
+          (DEBUG_ERROR,
+           "TcpInput: discard a segment because failed to init local end for TCB %p\n",
+           Tcb)
+          );
+
+        goto DISCARD;
+      }
+      // MU_CHANGE TCBZ4541 [END] - ISN generation is not cryptographically strong
+
       TcpInitTcbPeer (Tcb, Seg, &Option);
 
       TcpSetState (Tcb, TCP_SYN_RCVD);

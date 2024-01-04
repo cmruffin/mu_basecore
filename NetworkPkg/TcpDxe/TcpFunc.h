@@ -31,16 +31,21 @@ VOID
 // Functions in TcpMisc.c
 //
 
+// MU_CHANGE TCBZ4541 [BEGIN] - ISN generation is not cryptographically strong
 /**
   Initialize the Tcb locally related members.
 
   @param[in, out]  Tcb               Pointer to the TCP_CB of this TCP instance.
+  
+  @retval EFI_SUCCESS             The operation completed successfully
+  @retval others                  The underlying functions failed and could not complete the operation
 
 **/
-VOID
+EFI_STATUS
 TcpInitTcbLocal (
   IN OUT TCP_CB  *Tcb
   );
+// MU_CHANGE TCBZ4541 [END] - ISN generation is not cryptographically strong
 
 /**
   Initialize the peer related members.
@@ -129,17 +134,6 @@ TcpCloneTcb (
   );
 
 /**
-  Compute an ISS to be used by a new connection.
-
-  @return The result ISS.
-
-**/
-TCP_SEQNO
-TcpGetIss (
-  VOID
-  );
-
-/**
   Get the local mss.
 
   @param[in]  Sock        Pointer to the socket to get mss.
@@ -196,17 +190,22 @@ TcpFormatNetbuf (
   IN OUT NET_BUF  *Nbuf
   );
 
+// MU_CHANGE TCBZ4541 [BEGIN] - ISN generation is not cryptographically strong
 /**
   Initialize an active connection,
 
   @param[in, out]  Tcb          Pointer to the TCP_CB that wants to initiate a
                                 connection.
+								
+  @retval EFI_SUCCESS             The operation completed successfully
+  @retval others                  The underlying functions failed and could not complete the operation
 
 **/
-VOID
+EFI_STATUS
 TcpOnAppConnect (
   IN OUT TCP_CB  *Tcb
   );
+// MU_CHANGE TCBZ4541 [END] - ISN generation is not cryptographically strong
 
 /**
   Application has consumed some data, check whether
