@@ -20,7 +20,9 @@
   PxeBcDhcp6GoogleTest.cpp
   ../PxeBcDhcp6.c
   ../PxeBcSupport.c
-
+  ../../../MdePkg/Test/Mock/Library/GoogleTest/Protocol/MockRng.cpp
+  ../../../MdePkg/Test/Mock/Library/GoogleTest/MockUefiBootServicesTableLib/MockUefiBootServicesTableLib.cpp
+  
 [Packages]
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec
