@@ -320,7 +320,9 @@ TEST_F (PxeBcCacheDnsServerAddressesTest, MultipleDnsEntries) {
   //
   // This is tracked in https://bugzilla.tianocore.org/show_bug.cgi?id=1886
   //
-  ASSERT_EQ (CompareMem (Private.DnsServer, &addresses, sizeof (addresses)), 0);
+  // MU_CHANGE TCBZ4539 [BEGIN] - No intention at this time to support multiple DNS servers with Mu
+  // ASSERT_EQ (CompareMem (Private.DnsServer, &addresses, sizeof (addresses)), 0);
+  // MU_CHANGE TCBZ4539 [END]
 
   if (Private.DnsServer) {
     FreePool (Private.DnsServer);
