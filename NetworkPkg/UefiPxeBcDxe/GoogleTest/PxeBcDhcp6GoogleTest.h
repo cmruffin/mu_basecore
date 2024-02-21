@@ -1,8 +1,4 @@
 /** @file
-<<<<<<< HEAD
-
-=======
->>>>>>> upstream/release/202311
   This file exposes the internal interfaces which may be unit tested
   for the PxeBcDhcp6Dxe driver.
 

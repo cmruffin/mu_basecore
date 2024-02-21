@@ -986,9 +986,7 @@ PxeBcRequestBootService (
     RequestOpt += (OpLen + PXEBC_COMBINED_SIZE_OF_OPT_CODE_AND_LEN);
     RequestLen += (OpLen + PXEBC_COMBINED_SIZE_OF_OPT_CODE_AND_LEN);
   }
-
-  // MU_CHANGE TCBZ4540 [END] -  Buffer overflow when handling Server ID option from a DHCPv6 proxy Advertise message
-
+  
   //
   // Update Elapsed option in the package
   //

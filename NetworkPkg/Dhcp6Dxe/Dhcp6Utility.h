@@ -159,8 +159,6 @@ Dhcp6OnTransmitted (
   IN VOID           *Context
   );
 
-// MU_CHANGE TCBZ4535 [BEGIN] - Buffer overflow in the DHCPv6 client via a long Server ID option
-
 /**
   Append the option to Buf, update the length of packet, and move Buf to the end.
 
@@ -233,8 +231,6 @@ Dhcp6AppendETOption (
   IN     DHCP6_INSTANCE    *Instance,
   OUT    UINT16            **Elapsed
   );
-
-// MU_CHANGE TCBZ4535 [END] - Buffer overflow in the DHCPv6 client via a long Server ID option
 
 /**
   Set the elapsed time based on the given instance and the pointer to the

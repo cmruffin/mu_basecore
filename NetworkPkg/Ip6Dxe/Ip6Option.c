@@ -9,9 +9,6 @@
 
 #include "Ip6Impl.h"
 
-
-// MU_CHANGE TCBZ4538 [BEGIN] - Infinite loop when parsing a PadN option in the Destination Options header
-
 /**
   Validate the IP6 option format for both the packets we received
   and that we will transmit. It will compute the ICMPv6 error message fields
@@ -174,8 +171,6 @@ Ip6IsNDOptionValid (
 
   Offset = 0;
 
-  // MU_CHANGE TCBZ4536 [BEGIN] - Out-of-bounds read when handling a ND Redirect message with truncated options
-
   //
   // Cannot process truncated options.
   // Cannot process options with a length of 0 as there is no Type field.
@@ -183,8 +178,6 @@ Ip6IsNDOptionValid (
   if (OptionLen < sizeof (IP6_OPTION_HEADER)) {
     return FALSE;
   }
-
-  // MU_CHANGE TCBZ4536 [END] - Out-of-bounds read when handling a ND Redirect message with truncated options
 
   //
   // RFC 4861 states that Neighbor Discovery packet can contain zero or more
