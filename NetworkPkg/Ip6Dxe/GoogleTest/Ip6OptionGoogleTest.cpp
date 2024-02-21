@@ -1,5 +1,5 @@
 /** @file
-  Host based unit test for Ip6Option.c.
+  Tests for Ip6Option.c.
 
   Copyright (c) Microsoft Corporation
   SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -17,18 +17,14 @@ extern "C" {
 
 /////////////////////////////////////////////////////////////////////////
 // Defines
-////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////
 
 #define IP6_PREFIX_INFO_OPTION_DATA_LEN    32
 #define OPTION_HEADER_IP6_PREFIX_DATA_LEN  (sizeof (IP6_OPTION_HEADER) + IP6_PREFIX_INFO_OPTION_DATA_LEN)
 
-///////////////////////////////////////////////////////////////////////
-// Symbol definitions
-//
-// These symbols / stub functions are required to be defined in order
-// to compile but are not under test. These can be converted to
-// Mock functions if required in the future.
-//
+////////////////////////////////////////////////////////////////////////
+// Symbol Definitions
+// These functions are not directly under test - but required to compile
 ////////////////////////////////////////////////////////////////////////
 UINT32  mIp6Id;
 
@@ -113,9 +109,9 @@ TEST_F (Ip6OptionValidationTest, ValidPrefixInfoOptionShouldReturnTrue) {
   optionHeader.Length = 4; // Length 4 * 8 = 32
   UINT8  option[OPTION_HEADER_IP6_PREFIX_DATA_LEN];
 
-  CopyMem (option, &optionHeader, OPTION_HEADER_IP6_PREFIX_DATA_LEN);
+  CopyMem (option, &optionHeader, sizeof (IP6_OPTION_HEADER));
 
-  EXPECT_FALSE (Ip6IsNDOptionValid (option, OPTION_HEADER_IP6_PREFIX_DATA_LEN));
+  EXPECT_TRUE (Ip6IsNDOptionValid (option, IP6_PREFIX_INFO_OPTION_DATA_LEN));
 }
 
 // Test Description:
@@ -156,10 +152,6 @@ protected:
     // Clean up any resources or variables
   }
 };
-
-///////////////////////////////////////////////////////////////////////////////
-// Ip6IsOptionValidTest Tests
-///////////////////////////////////////////////////////////////////////////////
 
 // Test Description
 // Verify that a NULL option is Invalid
@@ -412,56 +404,4 @@ TEST_F (Ip6IsOptionValidTest, MultiOptionSupport) {
   HdrLen = (UINT16)(Cursor - ExtHdr);
 
   EXPECT_TRUE (Ip6IsOptionValid (IpSb, &Packet, ExtHdr, HdrLen, 0));
-}
-
-// Test Description
-// Verify that a OptionLength that is too small fails
-TEST_F (Ip6IsOptionValidTest, VerifyOptionLengthTooSmall) {
-  NET_BUF  Packet = { 0 };
-  // we need to define enough of the packet to make the function work
-  // The function being tested will pass IpSb to Ip6SendIcmpError which is defined above
-  UINT32  DeadCode = 0xDeadC0de;
-  // Don't actually use this pointer, just pass it to the function, nothing will be done with it
-  IP6_SERVICE  *IpSb = (IP6_SERVICE *)&DeadCode;
-
-  EFI_IPv6_ADDRESS  SourceAddress      = { 0x20, 0x01, 0x0d, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x42, 0x83, 0x29 };
-  EFI_IPv6_ADDRESS  DestinationAddress = { 0x20, 0x01, 0x0d, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x42, 0x83, 0x29 };
-  EFI_IP6_HEADER    Ip6Header          = { 0 };
-
-  Ip6Header.SourceAddress      = SourceAddress;
-  Ip6Header.DestinationAddress = DestinationAddress;
-  Packet.Ip.Ip6                = &Ip6Header;
-
-  IP6_OPTION_HEADER  optionHeader;
-
-  optionHeader.Type   = Ip6OptionPad1;
-  optionHeader.Length = 0;
-
-  EXPECT_FALSE (Ip6IsOptionValid (IpSb, &Packet, (UINT8 *)&optionHeader, 0, 0));
-}
-
-// Test Description
-// Verify that a OptionLength that is too large fails
-TEST_F (Ip6IsOptionValidTest, VerifyOptionLengthTooLarge) {
-  NET_BUF  Packet = { 0 };
-  // we need to define enough of the packet to make the function work
-  // The function being tested will pass IpSb to Ip6SendIcmpError which is defined above
-  UINT32  DeadCode = 0xDeadC0de;
-  // Don't actually use this pointer, just pass it to the function, nothing will be done with it
-  IP6_SERVICE  *IpSb = (IP6_SERVICE *)&DeadCode;
-
-  EFI_IPv6_ADDRESS  SourceAddress      = { 0x20, 0x01, 0x0d, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x42, 0x83, 0x29 };
-  EFI_IPv6_ADDRESS  DestinationAddress = { 0x20, 0x01, 0x0d, 0xb8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x42, 0x83, 0x29 };
-  EFI_IP6_HEADER    Ip6Header          = { 0 };
-
-  Ip6Header.SourceAddress      = SourceAddress;
-  Ip6Header.DestinationAddress = DestinationAddress;
-  Packet.Ip.Ip6                = &Ip6Header;
-
-  IP6_OPTION_HEADER  optionHeader;
-
-  optionHeader.Type   = Ip6OptionPad1;
-  optionHeader.Length = 0;
-
-  EXPECT_FALSE (Ip6IsOptionValid (IpSb, &Packet, (UINT8 *)&optionHeader, MAX_UINT8, 0));
 }

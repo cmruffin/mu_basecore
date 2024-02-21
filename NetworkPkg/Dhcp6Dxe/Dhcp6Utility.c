@@ -10,8 +10,15 @@
 
 #include "Dhcp6Impl.h"
 
-#define OPT_TYPE_LEN  (2)
-#define OPT_LEN_LEN   (2)
+//
+// Verifies the packet cursor is within the packet
+// otherwise it is invalid
+//
+#define IS_INVALID_PACKET_CURSOR(PacketCursor, Packet) \
+  (((*PacketCursor) < (Packet)->Dhcp6.Option) || \
+   ((*PacketCursor) >= (Packet)->Dhcp6.Option + ((Packet)->Size - sizeof(EFI_DHCP6_HEADER))) \
+  )                                                                            \
+
 
 /**
   Generate client Duid in the format of Duid-llt.
@@ -592,8 +599,9 @@ Dhcp6OnTransmitted (
   @param[in]      OptLen         The length of option contents.
   @param[in]      Data           The pointer to the option content.
 
-  @retval   EFI_BUFFER_TOO_SMALL The buffer is too small to append the option.
-  @retval   EFI_SUCCESS          The option is appended successfully.
+  @retval   EFI_INVALID_PARAMETER An argument provided to the function was invalid
+  @retval   EFI_BUFFER_TOO_SMALL  The buffer is too small to append the option.
+  @retval   EFI_SUCCESS           The option is appended successfully.
 
 **/
 EFI_STATUS
@@ -642,16 +650,14 @@ Dhcp6AppendOption (
   //
   // Verify the PacketCursor is within the packet
   //
-  if (  (*PacketCursor < Packet->Dhcp6.Option)
-     || (*PacketCursor >= Packet->Dhcp6.Option + (Packet->Size - sizeof (EFI_DHCP6_HEADER))))
-  {
+  if (IS_INVALID_PACKET_CURSOR (PacketCursor, Packet)) {
     return EFI_INVALID_PARAMETER;
   }
 
   //
   // Calculate the bytes needed for the option
   //
-  BytesNeeded = OPT_TYPE_LEN + OPT_LEN_LEN + NTOHS (OptLen);
+  BytesNeeded = DHCP6_SIZE_OF_COMBINED_CODE_AND_LEN + NTOHS (OptLen);
 
   //
   // Space remaining in the packet
@@ -661,19 +667,10 @@ Dhcp6AppendOption (
     return EFI_BUFFER_TOO_SMALL;
   }
 
-  //
-  // Verify the PacketCursor is within the packet
-  //
-  if (  (*PacketCursor < Packet->Dhcp6.Option)
-     || (*PacketCursor >= Packet->Dhcp6.Option + (Packet->Size - sizeof (EFI_DHCP6_HEADER))))
-  {
-    return EFI_INVALID_PARAMETER;
-  }
-
   WriteUnaligned16 ((UINT16 *)*PacketCursor, OptType);
-  *PacketCursor += OPT_TYPE_LEN;
+  *PacketCursor += DHCP6_SIZE_OF_OPT_CODE;
   WriteUnaligned16 ((UINT16 *)*PacketCursor, OptLen);
-  *PacketCursor += OPT_LEN_LEN;
+  *PacketCursor += DHCP6_SIZE_OF_OPT_LEN;
   CopyMem (*PacketCursor, Data, NTOHS (OptLen));
   *PacketCursor += NTOHS (OptLen);
 
@@ -693,8 +690,9 @@ Dhcp6AppendOption (
   @param[in]      IaAddr        The pointer to the IA Address.
   @param[in]      MessageType   Message type of DHCP6 package.
 
-  @retval   EFI_BUFFER_TOO_SMALL The buffer is too small to append the option.
-  @retval   EFI_SUCCESS          The IA Address option is appended successfully.
+  @retval   EFI_INVALID_PARAMETER An argument provided to the function was invalid
+  @retval   EFI_BUFFER_TOO_SMALL  The buffer is too small to append the option.
+  @retval   EFI_SUCCESS           The option is appended successfully.
 
 **/
 EFI_STATUS
@@ -747,13 +745,11 @@ Dhcp6AppendIaAddrOption (
   //
   // Verify the PacketCursor is within the packet
   //
-  if (  (*PacketCursor < Packet->Dhcp6.Option)
-     || (*PacketCursor >= Packet->Dhcp6.Option + (Packet->Size - sizeof (EFI_DHCP6_HEADER))))
-  {
+  if (IS_INVALID_PACKET_CURSOR (PacketCursor, Packet)) {
     return EFI_INVALID_PARAMETER;
   }
 
-  BytesNeeded  = OPT_TYPE_LEN + OPT_LEN_LEN;
+  BytesNeeded  = DHCP6_SIZE_OF_COMBINED_CODE_AND_LEN;
   BytesNeeded += sizeof (EFI_IPv6_ADDRESS);
   //
   // Even if the preferred-lifetime is 0, it still needs to store it.
@@ -776,10 +772,10 @@ Dhcp6AppendIaAddrOption (
   // Fill the value of Ia Address option type
   //
   WriteUnaligned16 ((UINT16 *)*PacketCursor, HTONS (Dhcp6OptIaAddr));
-  *PacketCursor += OPT_TYPE_LEN;
+  *PacketCursor += DHCP6_SIZE_OF_OPT_CODE;
 
   WriteUnaligned16 ((UINT16 *)*PacketCursor, HTONS (sizeof (EFI_DHCP6_IA_ADDRESS)));
-  *PacketCursor += OPT_LEN_LEN;
+  *PacketCursor += DHCP6_SIZE_OF_OPT_LEN;
 
   CopyMem (*PacketCursor, &IaAddr->IpAddress, sizeof (EFI_IPv6_ADDRESS));
   *PacketCursor += sizeof (EFI_IPv6_ADDRESS);
@@ -821,8 +817,9 @@ Dhcp6AppendIaAddrOption (
   @param[in]      T2            The time of T2.
   @param[in]      MessageType   Message type of DHCP6 package.
 
-  @retval   EFI_BUFFER_TOO_SMALL The buffer is too small to append the option.
-  @retval   EFI_SUCCESS          The Ia option is appended successfully.
+  @retval   EFI_INVALID_PARAMETER An argument provided to the function was invalid
+  @retval   EFI_BUFFER_TOO_SMALL  The buffer is too small to append the option.
+  @retval   EFI_SUCCESS           The option is appended successfully.
 
 **/
 EFI_STATUS
@@ -879,14 +876,11 @@ Dhcp6AppendIaOption (
   //
   // Verify the PacketCursor is within the packet
   //
-  if (  (*PacketCursor < Packet->Dhcp6.Option)
-     || (*PacketCursor >= Packet->Dhcp6.Option + (Packet->Size - sizeof (EFI_DHCP6_HEADER))))
-  {
+  if (IS_INVALID_PACKET_CURSOR (PacketCursor, Packet)) {
     return EFI_INVALID_PARAMETER;
   }
 
-  BytesNeeded  = OPT_TYPE_LEN;
-  BytesNeeded += OPT_LEN_LEN;
+  BytesNeeded  = DHCP6_SIZE_OF_COMBINED_CODE_AND_LEN;
   BytesNeeded += sizeof (Ia->Descriptor.IaId);
   //
   // + N for the IA_NA-options/IA_TA-options
@@ -908,13 +902,13 @@ Dhcp6AppendIaOption (
   // Fill the value of Ia option type
   //
   WriteUnaligned16 ((UINT16 *)*PacketCursor, HTONS (Ia->Descriptor.Type));
-  *PacketCursor += OPT_TYPE_LEN;
+  *PacketCursor += DHCP6_SIZE_OF_OPT_CODE;
 
   //
   // Fill the len of Ia option later, keep the pointer first
   //
   Len            = (UINT16 *)*PacketCursor;
-  *PacketCursor += OPT_LEN_LEN;
+  *PacketCursor += DHCP6_SIZE_OF_OPT_LEN;
 
   //
   // Fill the value of iaid
@@ -933,6 +927,11 @@ Dhcp6AppendIaOption (
   }
 
   //
+  // Update the packet length
+  //
+  Packet->Length += BytesNeeded;
+
+  //
   // Fill all the addresses belong to the Ia
   //
   for (Index = 0; Index < Ia->IaAddressCount; Index++) {
@@ -948,11 +947,6 @@ Dhcp6AppendIaOption (
   //
   *Len = HTONS ((UINT16)(*PacketCursor - (UINT8 *)Len - 2));
 
-  //
-  // Update the packet length
-  //
-  Packet->Length += BytesNeeded;
-
   return EFI_SUCCESS;
 }
 
@@ -960,14 +954,16 @@ Dhcp6AppendIaOption (
   Append the appointed Elapsed time option to Buf, and move Buf to the end.
 
   @param[in, out] Packet        A pointer to the packet, on success Packet->Length
+                                will be updated.
   @param[in, out] PacketCursor  The pointer in the packet, on success PacketCursor
                                 will be moved to the end of the option.
   @param[in]      Instance      The pointer to the Dhcp6 instance.
   @param[out]     Elapsed       The pointer to the elapsed time value in
                                 the generated packet.
 
-  @retval   EFI_BUFFER_TOO_SMALL The buffer is too small to append the option.
-  @retval   EFI_SUCCESS          Appended the option successfully.
+  @retval   EFI_INVALID_PARAMETER An argument provided to the function was invalid
+  @retval   EFI_BUFFER_TOO_SMALL  The buffer is too small to append the option.
+  @retval   EFI_SUCCESS           The option is appended successfully.
 
 **/
 EFI_STATUS
@@ -1007,25 +1003,22 @@ Dhcp6AppendETOption (
     return EFI_INVALID_PARAMETER;
   }
 
-  if (Elapsed == NULL) {
+  if ((Elapsed == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
 
   //
   // Verify the PacketCursor is within the packet
   //
-  if (  (*PacketCursor < Packet->Dhcp6.Option)
-     || (*PacketCursor >= Packet->Dhcp6.Option + (Packet->Size - sizeof (EFI_DHCP6_HEADER))))
-  {
+  if (IS_INVALID_PACKET_CURSOR (PacketCursor, Packet)) {
     return EFI_INVALID_PARAMETER;
   }
 
-  BytesNeeded  = OPT_TYPE_LEN;
-  BytesNeeded += OPT_LEN_LEN;
+  BytesNeeded = DHCP6_SIZE_OF_COMBINED_CODE_AND_LEN;
   //
   // + 2 for elapsed-time
   //
-  BytesNeeded += sizeof(UINT16);
+  BytesNeeded += sizeof (UINT16);
   //
   // Space remaining in the packet
   //
@@ -1038,13 +1031,13 @@ Dhcp6AppendETOption (
   // Fill the value of elapsed-time option type.
   //
   WriteUnaligned16 ((UINT16 *)*PacketCursor, HTONS (Dhcp6OptElapsedTime));
-  *PacketCursor += OPT_TYPE_LEN;
+  *PacketCursor += DHCP6_SIZE_OF_OPT_CODE;
 
   //
   // Fill the len of elapsed-time option, which is fixed.
   //
   WriteUnaligned16 ((UINT16 *)*PacketCursor, HTONS (2));
-  *PacketCursor += OPT_LEN_LEN;
+  *PacketCursor += DHCP6_SIZE_OF_OPT_LEN;
 
   //
   // Fill in elapsed time value with 0 value for now.  The actual value is
@@ -1052,7 +1045,7 @@ Dhcp6AppendETOption (
   //
   WriteUnaligned16 ((UINT16 *)*PacketCursor, HTONS (0));
   *Elapsed       = (UINT16 *)*PacketCursor;
-  *PacketCursor += sizeof(UINT16);
+  *PacketCursor += sizeof (UINT16);
 
   Packet->Length += BytesNeeded;
 

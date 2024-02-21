@@ -17,8 +17,10 @@
 #
 [Sources]
   ../Ip6Option.c
+  Ip6OptionGoogleTest.h
   Ip6DxeGoogleTest.cpp
   Ip6OptionGoogleTest.cpp
+  Ip6OptionGoogleTest.h
 
 [Packages]
   MdePkg/MdePkg.dec
@@ -31,7 +33,6 @@
   DebugLib
   NetLib
   PcdLib
-  
 [Protocols]
   gEfiDhcp6ServiceBindingProtocolGuid
 
@@ -39,4 +40,4 @@
   gEfiNetworkPkgTokenSpaceGuid.PcdDhcp6UidType
 
 [Guids]
-  gZeroGuid  
+  gZeroGuid

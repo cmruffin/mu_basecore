@@ -14,8 +14,9 @@
   SUPPORTED_ARCHITECTURES = IA32|X64|AARCH64
   BUILD_TARGETS           = NOOPT
   SKUID_IDENTIFIER        = DEFAULT
-  
+
 !include UnitTestFrameworkPkg/UnitTestFrameworkPkgHost.dsc.inc
+
 [Packages]
   MdePkg/MdePkg.dec
   UnitTestFrameworkPkg/UnitTestFrameworkPkg.dec
@@ -50,7 +51,6 @@
   UefiRuntimeServicesTableLib|MdePkg/Library/UefiRuntimeServicesTableLib/UefiRuntimeServicesTableLib.inf
   UefiHiiServicesLib|MdeModulePkg/Library/UefiHiiServicesLib/UefiHiiServicesLib.inf
   UefiBootManagerLib|MdeModulePkg/Library/UefiBootManagerLib/UefiBootManagerLib.inf
-  MemoryTypeInformationChangeLib|MdeModulePkg/Library/MemoryTypeInformationChangeLibNull/MemoryTypeInformationChangeLibNull.inf
   TimerLib|MdePkg/Library/BaseTimerLibNullTemplate/BaseTimerLibNullTemplate.inf
   PerformanceLib|MdePkg/Library/BasePerformanceLibNull/BasePerformanceLibNull.inf
   PeCoffGetEntryPointLib|MdePkg/Library/BasePeCoffGetEntryPointLib/BasePeCoffGetEntryPointLib.inf
@@ -110,10 +110,4 @@
   
 [PcdsFixedAtBuild]
   gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|0x2
-
-  # This is supposed to be 0x1000_00001 according to the NetworkPkg.dec file, but that causes a build error.
-  gEfiNetworkPkgTokenSpaceGuid.PcdDhcp6UidType|0x4|UINT8|0xFFFF
-
-
-[BuildOptions]
-  *_*_*_CC_FLAGS = /WX-
+  gEfiNetworkPkgTokenSpaceGuid.PcdDhcp6UidType|0x4

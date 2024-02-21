@@ -172,9 +172,9 @@ Dhcp6OnTransmitted (
   @param[in]      OptLen         The length of option contents.
   @param[in]      Data           The pointer to the option content.
 
-  @retval   EFI_BUFFER_TOO_SMALL The buffer is too small to append the option.
-  @retval   EFI_SUCCESS          The option is appended successfully.
-
+  @retval   EFI_INVALID_PARAMETER An argument provided to the function was invalid
+  @retval   EFI_BUFFER_TOO_SMALL  The buffer is too small to append the option.
+  @retval   EFI_SUCCESS           The option is appended successfully.
 **/
 EFI_STATUS
 Dhcp6AppendOption (
@@ -196,8 +196,10 @@ Dhcp6AppendOption (
   @param[in]      T1            The time of T1.
   @param[in]      T2            The time of T2.
   @param[in]      MessageType   Message type of DHCP6 package.
-  @retval   EFI_BUFFER_TOO_SMALL The buffer is too small to append the option.
-  @retval   EFI_SUCCESS          Appended the IA option successfully.
+
+  @retval   EFI_INVALID_PARAMETER An argument provided to the function was invalid
+  @retval   EFI_BUFFER_TOO_SMALL  The buffer is too small to append the option.
+  @retval   EFI_SUCCESS           The option is appended successfully.
 **/
 EFI_STATUS
 Dhcp6AppendIaOption (
@@ -219,8 +221,9 @@ Dhcp6AppendIaOption (
   @param[out]     Elapsed       The pointer to the elapsed time value in
                                   the generated packet.
 
-  @retval   EFI_BUFFER_TOO_SMALL The buffer is too small to append the option.
-  @retval   EFI_SUCCESS          Appended the option successfully.
+  @retval   EFI_INVALID_PARAMETER An argument provided to the function was invalid
+  @retval   EFI_BUFFER_TOO_SMALL  The buffer is too small to append the option.
+  @retval   EFI_SUCCESS           The option is appended successfully.
 
 **/
 EFI_STATUS
@@ -237,8 +240,9 @@ Dhcp6AppendETOption (
   Set the elapsed time based on the given instance and the pointer to the
   elapsed time option.
 
-  @param[in]      Elapsed       The pointer to the position to append.
-  @param[in]      Instance      The pointer to the Dhcp6 instance.
+  @retval   EFI_INVALID_PARAMETER An argument provided to the function was invalid
+  @retval   EFI_BUFFER_TOO_SMALL  The buffer is too small to append the option.
+  @retval   EFI_SUCCESS           The option is appended successfully.
 **/
 VOID
 SetElapsedTime (

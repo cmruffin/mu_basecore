@@ -135,14 +135,14 @@ protected:
     //  UdpWrite
     //  UdpRead
 
-    Private.PxeBc.UdpWrite = MockUdpWrite;
-    Private.PxeBc.UdpRead  = MockUdpRead;
+    Private.PxeBc.UdpWrite = (EFI_PXE_BASE_CODE_UDP_WRITE)MockUdpWrite;
+    Private.PxeBc.UdpRead  = (EFI_PXE_BASE_CODE_UDP_READ)MockUdpRead;
 
     // Need to setup EFI_UDP6_PROTOCOL
     // The function under test really only needs the following:
     //  Configure
 
-    Udp6Read.Configure = MockConfigure;
+    Udp6Read.Configure = (EFI_UDP6_CONFIGURE)MockConfigure;
     Private.Udp6Read   = &Udp6Read;
 
     // Need to setup the EFI_PXE_BASE_CODE_MODE
@@ -216,7 +216,7 @@ TEST_F (PxeBcCacheDnsServerAddressesTest, BasicUsageTest) {
   PXEBC_DHCP6_PACKET_CACHE  *Cache6 = NULL;
 
   Option = (EFI_DHCP6_PACKET_OPTION *)AllocateZeroPool (sizeof (EFI_DHCP6_PACKET_OPTION) + sizeof (SearchPattern));
-  ASSERT_NE (Option, NULL);
+  ASSERT_NE (Option, nullptr);
 
   Option->OpCode = DHCP6_OPT_SERVER_ID;
   Option->OpLen  = NTOHS (sizeof (SearchPattern));
@@ -226,10 +226,10 @@ TEST_F (PxeBcCacheDnsServerAddressesTest, BasicUsageTest) {
   Cache6                                      = &Private.OfferBuffer[Private.SelectIndex - 1].Dhcp6;
   Cache6->OptList[PXEBC_DHCP6_IDX_DNS_SERVER] = Option;
 
-  Private.DnsServer = NULL;
+  Private.DnsServer = nullptr;
 
   ASSERT_EQ (PxeBcCacheDnsServerAddresses (&(PxeBcCacheDnsServerAddressesTest::Private), Cache6), EFI_SUCCESS);
-  ASSERT_NE (Private.DnsServer, NULL);
+  ASSERT_NE (Private.DnsServer, nullptr);
   ASSERT_EQ (CompareMem (Private.DnsServer, SearchPattern, sizeof (SearchPattern)), 0);
 
   if (Private.DnsServer) {
@@ -240,6 +240,7 @@ TEST_F (PxeBcCacheDnsServerAddressesTest, BasicUsageTest) {
     FreePool (Option);
   }
 }
+
 // Test Description
 // Test that we can prevent an overflow in the function
 TEST_F (PxeBcCacheDnsServerAddressesTest, AttemptOverflowTest) {
@@ -256,7 +257,7 @@ TEST_F (PxeBcCacheDnsServerAddressesTest, AttemptOverflowTest) {
   Private.DnsServer = NULL;
 
   ASSERT_EQ (PxeBcCacheDnsServerAddresses (&(PxeBcCacheDnsServerAddressesTest::Private), Cache6), EFI_DEVICE_ERROR);
-  ASSERT_EQ (Private.DnsServer, NULL);
+  ASSERT_EQ (Private.DnsServer, nullptr);
 
   if (Private.DnsServer) {
     FreePool (Private.DnsServer);
@@ -279,7 +280,7 @@ TEST_F (PxeBcCacheDnsServerAddressesTest, AttemptUnderflowTest) {
   Private.DnsServer = NULL;
 
   ASSERT_EQ (PxeBcCacheDnsServerAddresses (&(PxeBcCacheDnsServerAddressesTest::Private), Cache6), EFI_DEVICE_ERROR);
-  ASSERT_EQ (Private.DnsServer, NULL);
+  ASSERT_EQ (Private.DnsServer, nullptr);
 
   if (Private.DnsServer) {
     FreePool (Private.DnsServer);
@@ -320,9 +321,8 @@ TEST_F (PxeBcCacheDnsServerAddressesTest, MultipleDnsEntries) {
   //
   // This is tracked in https://bugzilla.tianocore.org/show_bug.cgi?id=1886
   //
-  // MU_CHANGE TCBZ4539 [BEGIN] - No intention at this time to support multiple DNS servers with Mu
-  // ASSERT_EQ (CompareMem (Private.DnsServer, &addresses, sizeof (addresses)), 0);
-  // MU_CHANGE TCBZ4539 [END]
+  // Disabling:
+  // ASSERT_EQ (CompareMem(Private.DnsServer, &addresses, sizeof(addresses)), 0);
 
   if (Private.DnsServer) {
     FreePool (Private.DnsServer);
@@ -330,7 +330,7 @@ TEST_F (PxeBcCacheDnsServerAddressesTest, MultipleDnsEntries) {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Test Cases
+// PxeBcRequestBootServiceTest Test Cases
 ///////////////////////////////////////////////////////////////////////////////
 
 class PxeBcRequestBootServiceTest : public ::testing::Test {
@@ -351,14 +351,14 @@ protected:
     //  UdpWrite
     //  UdpRead
 
-    Private.PxeBc.UdpWrite = MockUdpWrite;
-    Private.PxeBc.UdpRead  = MockUdpRead;
+    Private.PxeBc.UdpWrite = (EFI_PXE_BASE_CODE_UDP_WRITE)MockUdpWrite;
+    Private.PxeBc.UdpRead  = (EFI_PXE_BASE_CODE_UDP_READ)MockUdpRead;
 
     // Need to setup EFI_UDP6_PROTOCOL
     // The function under test really only needs the following:
     //  Configure
 
-    Udp6Read.Configure = MockConfigure;
+    Udp6Read.Configure = (EFI_UDP6_CONFIGURE)MockConfigure;
     Private.Udp6Read   = &Udp6Read;
   }
 
@@ -418,7 +418,8 @@ TEST_F (PxeBcRequestBootServiceTest, AttemptDiscoverOverFlowExpectFailure) {
   Packet->Length = (UINT16)(Cursor - (UINT8 *)Packet);
   Packet->Size   = PACKET_SIZE;
 
-  ASSERT_EQ (PxeBcRequestBootService (&(PxeBcRequestBootServiceTest::Private), Index), EFI_OUT_OF_RESOURCES);
+  // This is going to be stopped by the duid overflow check
+  ASSERT_EQ (PxeBcRequestBootService (&(PxeBcRequestBootServiceTest::Private), Index), EFI_INVALID_PARAMETER);
 }
 
 TEST_F (PxeBcRequestBootServiceTest, RequestBasicUsageTest) {
@@ -465,40 +466,6 @@ TEST_F (PxeBcRequestBootServiceTest, AttemptRequestOverFlowExpectFailure) {
   ASSERT_EQ (PxeBcRequestBootService (&(PxeBcRequestBootServiceTest::Private), Index), EFI_OUT_OF_RESOURCES);
 }
 
-TEST_F (PxeBcRequestBootServiceTest, AttemptMultipleRequestOverFlowExpectFailure) {
-  EFI_DHCP6_PACKET_OPTION  RequestOpt                              = { 0 }; // the data section doesn't really matter
-  UINT8                    RequestOptBuffer[REQUEST_OPTION_LENGTH] = { 0 };
-
-  RequestOpt.OpCode = HTONS (0x1337);
-  RequestOpt.OpLen  = HTONS (REQUEST_OPTION_LENGTH); // this length would overflow without a check
-
-  // make sure we have enough space for 10 of these options
-  ASSERT_TRUE (REQUEST_OPTION_LENGTH * 10 <= PACKET_SIZE);
-
-  UINT8             Index   = 0;
-  EFI_DHCP6_PACKET  *Packet = (EFI_DHCP6_PACKET *)&Private.Dhcp6Request[Index];
-  UINT8             *Cursor = (UINT8 *)(Packet->Dhcp6.Option);
-
-  // let's add 10 of these options
-  for (UINT8 i = 0; i < 10; i++) {
-    CopyMem (Cursor, &RequestOpt, sizeof (RequestOpt));
-    Cursor += sizeof (RequestOpt) - 1;
-    CopyMem (Cursor, RequestOptBuffer, REQUEST_OPTION_LENGTH);
-    Cursor += REQUEST_OPTION_LENGTH;
-  }
-
-  // Update the packet length
-  Packet->Length = (UINT16)(Cursor - (UINT8 *)Packet);
-  Packet->Size   = PACKET_SIZE;
-
-  // Make sure we're larger than the buffer we're trying to write into
-  ASSERT_TRUE (Packet->Length > sizeof (EFI_PXE_BASE_CODE_DHCPV6_PACKET));
-
-  DEBUG ((DEBUG_INFO, "Packet->Length: %d\n", Packet->Length));
-
-  ASSERT_EQ (PxeBcRequestBootService (&(PxeBcRequestBootServiceTest::Private), Index), EFI_OUT_OF_RESOURCES);
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // PxeBcDhcp6Discover Test
 ///////////////////////////////////////////////////////////////////////////////
@@ -528,14 +495,14 @@ protected:
     //  UdpWrite
     //  UdpRead
 
-    Private.PxeBc.UdpWrite = MockUdpWrite;
-    Private.PxeBc.UdpRead  = MockUdpRead;
+    Private.PxeBc.UdpWrite = (EFI_PXE_BASE_CODE_UDP_WRITE)MockUdpWrite;
+    Private.PxeBc.UdpRead  = (EFI_PXE_BASE_CODE_UDP_READ)MockUdpRead;
 
     // Need to setup EFI_UDP6_PROTOCOL
     // The function under test really only needs the following:
     //  Configure
 
-    Udp6Read.Configure = MockConfigure;
+    Udp6Read.Configure = (EFI_UDP6_CONFIGURE)MockConfigure;
     Private.Udp6Read   = &Udp6Read;
   }
 

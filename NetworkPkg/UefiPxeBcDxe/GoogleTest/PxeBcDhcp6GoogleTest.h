@@ -1,5 +1,8 @@
 /** @file
+<<<<<<< HEAD
 
+=======
+>>>>>>> upstream/release/202311
   This file exposes the internal interfaces which may be unit tested
   for the PxeBcDhcp6Dxe driver.
 
@@ -7,10 +10,12 @@
   SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 
-#ifndef __PXE_BC_DHCP6_GOOGLE_TEST_H__
-#define __PXE_BC_DHCP6_GOOGLE_TEST_H__
+#ifndef PXE_BC_DHCP6_GOOGLE_TEST_H_
+#define PXE_BC_DHCP6_GOOGLE_TEST_H_
 
+//
 // Minimal includes needed to compile
+//
 #include <Uefi.h>
 #include "../PxeBcImpl.h"
 
@@ -31,14 +36,15 @@ PxeBcHandleDhcp6Offer (
   );
 
 /**
-  Cache the DHCPv6 DNS Server addresses
+  Cache the DHCPv6 Server address
+
   @param[in] Private               The pointer to PXEBC_PRIVATE_DATA.
   @param[in] Cache6                The pointer to PXEBC_DHCP6_PACKET_CACHE.
-  @retval    EFI_SUCCESS           Cache the DHCPv6 DNS Server address successfully.
+
+  @retval    EFI_SUCCESS           Cache the DHCPv6 Server address successfully.
   @retval    EFI_OUT_OF_RESOURCES  Failed to allocate resources.
-  @retval    EFI_DEVICE_ERROR      The DNS Server Address Length provided by a untrusted
-                                   option is not a multiple of 16 bytes (sizeof (EFI_IPv6_ADDRESS)).
-*/
+  @retval    EFI_DEVICE_ERROR      Failed to cache the DHCPv6 Server address.
+**/
 EFI_STATUS
 PxeBcCacheDnsServerAddresses (
   IN PXEBC_PRIVATE_DATA        *Private,
@@ -63,4 +69,4 @@ PxeBcRequestBootService (
   IN  UINT32              Index
   );
 
-#endif // __PXE_BC_DHCP6_GOOGLE_TEST_H__
+#endif // PXE_BC_DHCP6_GOOGLE_TEST_H_

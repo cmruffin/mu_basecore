@@ -528,13 +528,23 @@ Dhcp6UpdateIaInfo (
 {
   EFI_STATUS  Status;
   UINT8       *Option;
+  UINT32      OptionLen;
   UINT8       *IaInnerOpt;
   UINT16      IaInnerLen;
   UINT16      StsCode;
   UINT32      T1;
   UINT32      T2;
 
+  T1 = 0;
+  T2 = 0;
+
   ASSERT (Instance->Config != NULL);
+
+  // OptionLen is the length of the Options excluding the DHCP header.
+  // Length of the EFI_DHCP6_PACKET from the first byte of the Header field to the last
+  // byte of the Option[] field.
+  OptionLen = Packet->Length - sizeof (Packet->Dhcp6.Header);
+
   //
   // If the reply was received in response to a solicit with rapid commit option,
   // request, renew or rebind message, the client updates the information it has
@@ -549,12 +559,28 @@ Dhcp6UpdateIaInfo (
   //
   Option = Dhcp6SeekIaOption (
              Packet->Dhcp6.Option,
-             Packet->Length - sizeof (EFI_DHCP6_HEADER),
+             OptionLen,
              &Instance->Config->IaDescriptor
              );
   if (Option == NULL) {
     return EFI_DEVICE_ERROR;
   }
+
+  //
+  // Calculate the distance from Packet->Dhcp6.Option to the IA option.
+  //
+  // Packet->Size and Packet->Length are both UINT32 type, and Packet->Size is
+  // the size of the whole packet, including the DHCP header, and Packet->Length
+  // is the length of the DHCP message body, excluding the DHCP header.
+  //
+  // (*Option - Packet->Dhcp6.Option) is the number of bytes from the start of
+  // DHCP6 option area to the start of the IA option.
+  //
+  // Dhcp6SeekInnerOptionSafe() is searching starting from the start of the
+  // IA option to the end of the DHCP6 option area, thus subtract the space
+  // up until this option
+  //
+  OptionLen = OptionLen - (UINT32)(Option - Packet->Dhcp6.Option);
 
   //
   // The format of the IA_NA option is:
@@ -591,33 +617,32 @@ Dhcp6UpdateIaInfo (
   //
 
   //
-  // sizeof (option-code + option-len + IaId)           = 8
-  // sizeof (option-code + option-len + IaId + T1)      = 12
-  // sizeof (option-code + option-len + IaId + T1 + T2) = 16
+  // Seek the inner option
   //
-  // The inner options still start with 2 bytes option-code and 2 bytes option-len.
-  //
-  // MU_CHANGE TCBZ4534 [BEGIN] - Buffer overflow in the DHCPv6 client via a long Server ID option
+  if (EFI_ERROR (
+        Dhcp6SeekInnerOptionSafe (
+          Instance->Config->IaDescriptor.Type,
+          Option,
+          OptionLen,
+          &IaInnerOpt,
+          &IaInnerLen
+          )
+        ))
+  {
+    return EFI_DEVICE_ERROR;
+  }
+
   if (Instance->Config->IaDescriptor.Type == Dhcp6OptIana) {
-    T1 = NTOHL (ReadUnaligned32 ((UINT32 *)(DHCP6_IA_NA_T1_OFFSET (Option))));
-    T2 = NTOHL (ReadUnaligned32 ((UINT32 *)(DHCP6_IA_NA_T2_OFFSET (Option))));
+    T1 = NTOHL (ReadUnaligned32 ((UINT32 *)(DHCP6_OFFSET_OF_IA_NA_T1 (Option))));
+    T2 = NTOHL (ReadUnaligned32 ((UINT32 *)(DHCP6_OFFSET_OF_IA_NA_T2 (Option))));
     //
     // Refer to RFC3155 Chapter 22.4. If a client receives an IA_NA with T1 greater than T2,
     // and both T1 and T2 are greater than 0, the client discards the IA_NA option and processes
-    // the remainder of the message as though the server had not  included the invalid IA_NA option.
+    // the remainder of the message as though the server had not included the invalid IA_NA option.
     //
     if ((T1 > T2) && (T2 > 0)) {
       return EFI_DEVICE_ERROR;
     }
-
-    IaInnerOpt = DHCP6_IA_NA_INNER_OPT_OFFSET (Option);
-    IaInnerLen = (UINT16)(NTOHS (ReadUnaligned16 ((UINT16 *)(DHCP6_OPT_LEN_OFFSET (Option)))) - DHCP6_SIZE_OF_COMBINED_IAID_T1_T2);
-  } else {
-    T1 = 0;
-    T2 = 0;
-
-    IaInnerOpt = DHCP6_IA_TA_INNER_OPT_OFFSET (Option);
-    IaInnerLen = (UINT16)(NTOHS (ReadUnaligned16 ((UINT16 *)(DHCP6_OPT_LEN_OFFSET (Option)))) - DHCP6_SIZE_OF_IAID);
   }
 
   //
@@ -643,13 +668,11 @@ Dhcp6UpdateIaInfo (
   Option  = Dhcp6SeekOption (IaInnerOpt, IaInnerLen, Dhcp6OptStatusCode);
 
   if (Option != NULL) {
-    StsCode = NTOHS (ReadUnaligned16 ((UINT16 *)(DHCP6_OPT_LEN_OFFSET (Option))));
+    StsCode = NTOHS (ReadUnaligned16 ((UINT16 *)(DHCP6_OFFSET_OF_STATUS_CODE (Option))));
     if (StsCode != Dhcp6StsSuccess) {
       return EFI_DEVICE_ERROR;
     }
   }
-
-  // MU_CHANGE TCBZ4534 [END] - Buffer overflow in the DHCPv6 client via a long Server ID option
 
   //
   // Generate control block for the Ia.
@@ -665,9 +688,7 @@ Dhcp6UpdateIaInfo (
   return Status;
 }
 
-// MU_CHANGE TCBZ4534 [BEGIN] - Buffer overflow in the DHCPv6 client via a long Server ID option
-
-/*
+/**
   Seeks the Inner Options from a DHCP6 Option
 
   @param[in]  IaType          The type of the IA option.
@@ -679,7 +700,7 @@ Dhcp6UpdateIaInfo (
   @retval EFI_SUCCESS         Seek the inner option successfully.
   @retval EFI_DEVICE_ERROR    The OptionLen is invalid. On Error,
                               the pointers are not modified
-*/
+**/
 EFI_STATUS
 Dhcp6SeekInnerOptionSafe (
   IN  UINT16  IaType,
@@ -708,30 +729,41 @@ Dhcp6SeekInnerOptionSafe (
   }
 
   if (IaType == Dhcp6OptIana) {
+    //
     // Verify we have a fully formed IA_NA
+    //
     if (OptionLen < DHCP6_MIN_SIZE_OF_IA_NA) {
       return EFI_DEVICE_ERROR;
     }
 
-    IaInnerOptTmp = DHCP6_IA_NA_INNER_OPT_OFFSET (Option);
+    //
+    // Get the IA Inner Option and Length
+    //
+    IaInnerOptTmp = DHCP6_OFFSET_OF_IA_NA_INNER_OPT (Option);
 
+    //
     // Verify the IaInnerLen is valid.
-    IaInnerLenTmp = (UINT16)NTOHS (ReadUnaligned16 ((UINT16 *)DHCP6_OPT_LEN_OFFSET (Option)));
+    //
+    IaInnerLenTmp = (UINT16)NTOHS (ReadUnaligned16 ((UINT16 *)DHCP6_OFFSET_OF_OPT_LEN (Option)));
     if (IaInnerLenTmp < DHCP6_SIZE_OF_COMBINED_IAID_T1_T2) {
       return EFI_DEVICE_ERROR;
     }
 
     IaInnerLenTmp -= DHCP6_SIZE_OF_COMBINED_IAID_T1_T2;
   } else if (IaType == Dhcp6OptIata) {
+    //
     // Verify the OptionLen is valid.
+    //
     if (OptionLen < DHCP6_MIN_SIZE_OF_IA_TA) {
       return EFI_DEVICE_ERROR;
     }
 
-    IaInnerOptTmp = DHCP6_IA_TA_INNER_OPT_OFFSET (Option);
+    IaInnerOptTmp = DHCP6_OFFSET_OF_IA_TA_INNER_OPT (Option);
 
+    //
     // Verify the IaInnerLen is valid.
-    IaInnerLenTmp = (UINT16)NTOHS (ReadUnaligned16 ((UINT16 *)(DHCP6_OPT_LEN_OFFSET (Option))));
+    //
+    IaInnerLenTmp = (UINT16)NTOHS (ReadUnaligned16 ((UINT16 *)(DHCP6_OFFSET_OF_OPT_LEN (Option))));
     if (IaInnerLenTmp < DHCP6_SIZE_OF_IAID) {
       return EFI_DEVICE_ERROR;
     }
@@ -746,8 +778,6 @@ Dhcp6SeekInnerOptionSafe (
 
   return EFI_SUCCESS;
 }
-
-// MU_CHANGE TCBZ4534 [END] - Buffer overflow in the DHCPv6 client via a long Server ID option
 
 /**
   Seek StatusCode Option in package. A Status Code option may appear in the
@@ -772,7 +802,6 @@ Dhcp6SeekStsOption (
   UINT8   *IaInnerOpt;
   UINT16  IaInnerLen;
   UINT16  StsCode;
-  // MU_CHANGE TCBZ4534 [BEGIN] - Buffer overflow in the DHCPv6 client via a long Server ID option
   UINT32  OptionLen;
 
   // OptionLen is the length of the Options excluding the DHCP header.
@@ -791,7 +820,7 @@ Dhcp6SeekStsOption (
               );
 
   if (*Option != NULL) {
-    StsCode = NTOHS (ReadUnaligned16 ((UINT16 *)(DHCP6_STATUS_CODE_OFFSET (*Option))));
+    StsCode = NTOHS (ReadUnaligned16 ((UINT16 *)(DHCP6_OFFSET_OF_STATUS_CODE (*Option))));
     if (StsCode != Dhcp6StsSuccess) {
       return EFI_DEVICE_ERROR;
     }
@@ -862,13 +891,11 @@ Dhcp6SeekStsOption (
   //
   *Option = Dhcp6SeekOption (IaInnerOpt, IaInnerLen, Dhcp6OptStatusCode);
   if (*Option != NULL) {
-    StsCode = NTOHS (ReadUnaligned16 ((UINT16 *)((DHCP6_STATUS_CODE_OFFSET (*Option)))));
+    StsCode = NTOHS (ReadUnaligned16 ((UINT16 *)((DHCP6_OFFSET_OF_STATUS_CODE (*Option)))));
     if (StsCode != Dhcp6StsSuccess) {
       return EFI_DEVICE_ERROR;
     }
   }
-
-  // MU_CHANGE TCBZ4534 [END] - Buffer overflow in the DHCPv6 client via a long Server ID option
 
   return EFI_SUCCESS;
 }
@@ -1023,7 +1050,6 @@ Dhcp6SendSolicitMsg   (
   // Assembly Dhcp6 options for solicit message.
   //
   Cursor = Packet->Dhcp6.Option;
-  // MU_CHANGE TCBZ4535 [BEGIN] - Buffer overflow in the DHCPv6 client via a long Server ID option
 
   Length = HTONS (ClientId->Length);
   Status = Dhcp6AppendOption (
@@ -1119,8 +1145,6 @@ ON_ERROR:
 
   return Status;
 }
-
-// MU_CHANGE TCBZ4535 [END] - Buffer overflow in the DHCPv6 client via a long Server ID option
 
 /**
   Configure some parameter to initiate SolicitMsg.
@@ -1223,7 +1247,6 @@ Dhcp6SendRequestMsg (
   // Assembly Dhcp6 options for request message.
   //
   Cursor = Packet->Dhcp6.Option;
-  // MU_CHANGE TCBZ4535 [BEGIN] - Buffer overflow in the DHCPv6 client via a long Server ID option
 
   Length = HTONS (ClientId->Length);
   Status = Dhcp6AppendOption (
@@ -1328,8 +1351,6 @@ ON_ERROR:
   return Status;
 }
 
-// MU_CHANGE TCBZ4535 [END] - Buffer overflow in the DHCPv6 client via a long Server ID option
-
 /**
   Create the decline message and send it.
 
@@ -1373,7 +1394,6 @@ Dhcp6SendDeclineMsg (
   //
   // Get the server Id from the last reply message.
   //
-  // MU_CHANGE TCBZ4534 [BEGIN] - Buffer overflow in the DHCPv6 client via a long Server ID option
   Option = Dhcp6SeekOption (
              LastReply->Dhcp6.Option,
              LastReply->Length - sizeof (EFI_DHCP6_HEADER),
@@ -1530,7 +1550,6 @@ Dhcp6SendReleaseMsg (
   ASSERT (ClientId);
   ASSERT (LastReply);
 
-  // MU_CHANGE TCBZ4535 [BEGIN] - Buffer overflow in the DHCPv6 client via a long Server ID option
   //
   // Get the server Id from the last reply message.
   //
@@ -1647,8 +1666,6 @@ ON_ERROR:
   return Status;
 }
 
-// MU_CHANGE TCBZ4535 [END] - Buffer overflow in the DHCPv6 client via a long Server ID option
-
 /**
   Create the renew/rebind message and send it.
 
@@ -1700,7 +1717,6 @@ Dhcp6SendRenewRebindMsg (
     UserLen += (NTOHS (Instance->Config->OptionList[Index]->OpLen) + 4);
   }
 
-  // MU_CHANGE TCBZ4535 [BEGIN] - Buffer overflow in the DHCPv6 client via a long Server ID option
   //
   // Create the Dhcp6 packet and initialize common fields.
   //
@@ -1803,7 +1819,6 @@ Dhcp6SendRenewRebindMsg (
     }
   }
 
-  // MU_CHANGE TCBZ4535 [END] - Buffer overflow in the DHCPv6 client via a long Server ID option
   ASSERT (Packet->Size > Packet->Length + 8);
 
   //
@@ -1848,8 +1863,6 @@ ON_ERROR:
 
   return Status;
 }
-
-// MU_CHANGE TCBZ4535 [END] - Buffer overflow in the DHCPv6 client via a long Server ID option
 
 /**
   Start the information request process.
@@ -2007,7 +2020,6 @@ Dhcp6SendInfoRequestMsg (
     UserLen += (NTOHS (OptionList[Index]->OpLen) + 4);
   }
 
-  // MU_CHANGE TCBZ4535 [BEGIN] - Buffer overflow in the DHCPv6 client via a long Server ID option
   //
   // Create the Dhcp6 packet and initialize common fields.
   //
@@ -2110,8 +2122,6 @@ ON_ERROR:
   return Status;
 }
 
-// MU_CHANGE TCBZ4535 [END] - Buffer overflow in the DHCPv6 client via a long Server ID option
-
 /**
   Create the Confirm message and send it.
 
@@ -2155,7 +2165,6 @@ Dhcp6SendConfirmMsg (
     UserLen += (NTOHS (Instance->Config->OptionList[Index]->OpLen) + 4);
   }
 
-  // MU_CHANGE TCBZ4535 [BEGIN] - Buffer overflow in the DHCPv6 client via a long Server ID option
   //
   // Create the Dhcp6 packet and initialize common fields.
   //
@@ -2265,8 +2274,6 @@ ON_ERROR:
   return Status;
 }
 
-// MU_CHANGE TCBZ4535 [END] - Buffer overflow in the DHCPv6 client via a long Server ID option
-
 /**
   Handle with the Dhcp6 reply message.
 
@@ -2306,13 +2313,12 @@ Dhcp6HandleReplyMsg (
   // response to the request message.
   // See details in the section-17.1.4 of rfc-3315.
   //
-  // MU_CHANGE TCBZ4534 [BEGIN] - Buffer overflow in the DHCPv6 client via a long Server ID option
   Option = Dhcp6SeekOption (
              Packet->Dhcp6.Option,
              Packet->Length - sizeof (EFI_DHCP6_HEADER),
              Dhcp6OptRapidCommit
              );
-  // MU_CHANGE TCBZ4534 [END] - Buffer overflow in the DHCPv6 client via a long Server ID option
+
   if (((Option != NULL) && !Instance->Config->RapidCommit) || ((Option == NULL) && Instance->Config->RapidCommit)) {
     return EFI_DEVICE_ERROR;
   }
@@ -2455,9 +2461,7 @@ Dhcp6HandleReplyMsg (
     //
     // Any error status code option is found.
     //
-    // MU_CHANGE TCBZ4534 [BEGIN] - Buffer overflow in the DHCPv6 client via a long Server ID option
-    StsCode = NTOHS (ReadUnaligned16 ((UINT16 *)((DHCP6_STATUS_CODE_OFFSET (Option)))));
-    // MU_CHANGE TCBZ4534 [END] - Buffer overflow in the DHCPv6 client via a long Server ID option
+    StsCode = NTOHS (ReadUnaligned16 ((UINT16 *)((DHCP6_OFFSET_OF_STATUS_CODE (Option)))));
     switch (StsCode) {
       case Dhcp6StsUnspecFail:
         //
@@ -2588,7 +2592,6 @@ Dhcp6SelectAdvertiseMsg (
   // Check whether there is server unicast option in the selected advertise
   // packet, and update it.
   //
-  // MU_CHANGE TCBZ4534 [BEGIN] - Buffer overflow in the DHCPv6 client via a long Server ID option
   Option = Dhcp6SeekOption (
              AdSelect->Dhcp6.Option,
              AdSelect->Length - sizeof (EFI_DHCP6_HEADER),
@@ -2602,10 +2605,8 @@ Dhcp6SelectAdvertiseMsg (
       return EFI_OUT_OF_RESOURCES;
     }
 
-    CopyMem (Instance->Unicast, DHCP6_OPT_DATA_OFFSET (Option), sizeof (EFI_IPv6_ADDRESS));
+    CopyMem (Instance->Unicast, DHCP6_OFFSET_OF_OPT_DATA (Option), sizeof (EFI_IPv6_ADDRESS));
   }
-
-  // MU_CHANGE TCBZ4534 [END] - Buffer overflow in the DHCPv6 client via a long Server ID option
 
   //
   // Update the information of the Ia by the selected advertisement message.
@@ -2655,13 +2656,11 @@ Dhcp6HandleAdvertiseMsg (
   // this reply message. Or else, process the advertise messages as normal.
   // See details in the section-17.1.4 of rfc-3315.
   //
-  // MU_CHANGE TCBZ4534 [BEGIN] - Buffer overflow in the DHCPv6 client via a long Server ID option
   Option = Dhcp6SeekOption (
              Packet->Dhcp6.Option,
              Packet->Length - sizeof (EFI_DHCP6_HEADER),
              Dhcp6OptRapidCommit
              );
-  // MU_CHANGE TCBZ4534 [END] - Buffer overflow in the DHCPv6 client via a long Server ID option
 
   if ((Option != NULL) && Instance->Config->RapidCommit && (Packet->Dhcp6.Header.MessageType == Dhcp6MsgReply)) {
     return Dhcp6HandleReplyMsg (Instance, Packet);
@@ -2728,14 +2727,13 @@ Dhcp6HandleAdvertiseMsg (
     // Check whether the current packet has a 255 preference option or not.
     // Take non-preference option as 0 value.
     //
-    // MU_CHANGE TCBZ4534 [BEGIN] - Buffer overflow in the DHCPv6 client via a long Server ID option
     Option = Dhcp6SeekOption (
                Packet->Dhcp6.Option,
-               Packet->Length - DHCP6_SIZE_OF_COMBINED_CODE_AND_LEN,
+               Packet->Length - 4,
                Dhcp6OptPreference
                );
 
-    if ((Instance->AdSelect == NULL) || ((Option != NULL) && (*(DHCP6_OPT_DATA_OFFSET (Option)) > Instance->AdPref))) {
+    if ((Instance->AdSelect == NULL) || ((Option != NULL) && (*(Option + 4) > Instance->AdPref))) {
       //
       // No advertisements received before or preference is more than other
       // advertisements received before. Then store the new packet and the
@@ -2754,7 +2752,7 @@ Dhcp6HandleAdvertiseMsg (
       CopyMem (Instance->AdSelect, Packet, Packet->Size);
 
       if (Option != NULL) {
-        Instance->AdPref = *(DHCP6_OPT_DATA_OFFSET (Option));
+        Instance->AdPref = *(DHCP6_OFFSET_OF_OPT_DATA (Option));
       }
     } else {
       //
@@ -2768,8 +2766,6 @@ Dhcp6HandleAdvertiseMsg (
     //
     return Status;
   }
-
-  // MU_CHANGE TCBZ4534 [END] - Buffer overflow in the DHCPv6 client via a long Server ID option
 
   //
   // Client must collect advertise messages as more as possible until the first
@@ -2823,14 +2819,13 @@ Dhcp6HandleStateful (
   //
   // Check whether include client Id or not.
   //
-  // MU_CHANGE TCBZ4534 [BEGIN] - Buffer overflow in the DHCPv6 client via a long Server ID option
   Option = Dhcp6SeekOption (
              Packet->Dhcp6.Option,
              Packet->Length - DHCP6_SIZE_OF_COMBINED_CODE_AND_LEN,
              Dhcp6OptClientId
              );
 
-  if ((Option == NULL) || (CompareMem (DHCP6_OPT_DATA_OFFSET (Option), ClientId->Duid, ClientId->Length) != 0)) {
+  if ((Option == NULL) || (CompareMem (DHCP6_OFFSET_OF_OPT_DATA (Option), ClientId->Duid, ClientId->Length) != 0)) {
     goto ON_CONTINUE;
   }
 
@@ -2842,7 +2837,6 @@ Dhcp6HandleStateful (
              Packet->Length - DHCP6_SIZE_OF_COMBINED_CODE_AND_LEN,
              Dhcp6OptServerId
              );
-  // MU_CHANGE TCBZ4534 [END] - Buffer overflow in the DHCPv6 client via a long Server ID option
 
   if (Option == NULL) {
     goto ON_CONTINUE;
@@ -2943,13 +2937,11 @@ Dhcp6HandleStateless (
   //
   // Check whether include server Id or not.
   //
-  // MU_CHANGE TCBZ4534 [BEGIN] - Buffer overflow in the DHCPv6 client via a long Server ID option
   Option = Dhcp6SeekOption (
              Packet->Dhcp6.Option,
              Packet->Length - sizeof (EFI_DHCP6_HEADER),
              Dhcp6OptServerId
              );
-  // MU_CHANGE TCBZ4534 [END] - Buffer overflow in the DHCPv6 client via a long Server ID option
 
   if (Option == NULL) {
     goto ON_EXIT;

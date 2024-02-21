@@ -5,8 +5,8 @@
   SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 
-#ifndef DHCP6_IO_GOOGLE_TEST_H
-#define DHCP6_IO_GOOGLE_TEST_H
+#ifndef DHCP6_IO_GOOGLE_TEST_H_
+#define DHCP6_IO_GOOGLE_TEST_H_
 
 ////////////////////////////////////////////////////////////////////////////////
 // These are the functions that are being unit tested

@@ -73,8 +73,8 @@ typedef struct _DHCP6_INSTANCE  DHCP6_INSTANCE;
 //    |                      (option-len octets)                      |
 //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //
-#define DHCP6_SIZE_OF_OPT_CODE  (sizeof(UINT16))
-#define DHCP6_SIZE_OF_OPT_LEN   (sizeof(UINT16))
+#define DHCP6_SIZE_OF_OPT_CODE  (sizeof (((EFI_DHCP6_PACKET_OPTION *)0)->OpCode))
+#define DHCP6_SIZE_OF_OPT_LEN   (sizeof (((EFI_DHCP6_PACKET_OPTION *)0)->OpLen))
 
 // Combined size of Code and Length
 #define DHCP6_SIZE_OF_COMBINED_CODE_AND_LEN  (DHCP6_SIZE_OF_OPT_CODE + \
@@ -86,15 +86,15 @@ STATIC_ASSERT (
   );
 
 // Offset to the length is just past the code
-#define DHCP6_OPT_LEN_OFFSET(a)  (a + DHCP6_SIZE_OF_OPT_CODE)
+#define DHCP6_OFFSET_OF_OPT_LEN(a)  (a + DHCP6_SIZE_OF_OPT_CODE)
 STATIC_ASSERT (
-  DHCP6_OPT_LEN_OFFSET (0) == 2,
+  DHCP6_OFFSET_OF_OPT_LEN (0) == 2,
   "Offset of length is + 2 past start of option"
   );
 
-#define DHCP6_OPT_DATA_OFFSET(a)  (a + DHCP6_SIZE_OF_COMBINED_CODE_AND_LEN)
+#define DHCP6_OFFSET_OF_OPT_DATA(a)  (a + DHCP6_SIZE_OF_COMBINED_CODE_AND_LEN)
 STATIC_ASSERT (
-  DHCP6_OPT_DATA_OFFSET (0) == 4,
+  DHCP6_OFFSET_OF_OPT_DATA (0) == 4,
   "Offset to option data should be +4 from start of option"
   );
 //
@@ -121,9 +121,6 @@ STATIC_ASSERT (
 //    .                                                               .
 //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //
-
-#define DHCP6_SIZE_OF_OPT_CODE       (sizeof(UINT16))
-#define DHCP6_SIZE_OF_OPT_LEN        (sizeof(UINT16))
 #define DHCP6_SIZE_OF_IAID           (sizeof(UINT32))
 #define DHCP6_SIZE_OF_TIME_INTERVAL  (sizeof(UINT32))
 
@@ -145,9 +142,9 @@ STATIC_ASSERT (
   );
 
 // Offset to a IA_TA inner option
-#define DHCP6_IA_TA_INNER_OPT_OFFSET(a)  (a + DHCP6_MIN_SIZE_OF_IA_TA)
+#define DHCP6_OFFSET_OF_IA_TA_INNER_OPT(a)  (a + DHCP6_MIN_SIZE_OF_IA_TA)
 STATIC_ASSERT (
-  DHCP6_IA_TA_INNER_OPT_OFFSET (0) == 8,
+  DHCP6_OFFSET_OF_IA_TA_INNER_OPT (0) == 8,
   "Offset of IA_TA Inner option is + 8 past start of option"
   );
 
@@ -159,26 +156,26 @@ STATIC_ASSERT (
   "Minimum combined size of IA_TA per RFC 8415"
   );
 
-#define DHCP6_IA_NA_INNER_OPT_OFFSET(a)  (a + DHCP6_MIN_SIZE_OF_IA_NA)
+#define DHCP6_OFFSET_OF_IA_NA_INNER_OPT(a)  (a + DHCP6_MIN_SIZE_OF_IA_NA)
 STATIC_ASSERT (
-  DHCP6_IA_NA_INNER_OPT_OFFSET (0) == 16,
+  DHCP6_OFFSET_OF_IA_NA_INNER_OPT (0) == 16,
   "Offset of IA_NA Inner option is + 16 past start of option"
   );
 
-#define DHCP6_IA_NA_T1_OFFSET(a)  (a + \
+#define DHCP6_OFFSET_OF_IA_NA_T1(a)  (a + \
                                    DHCP6_SIZE_OF_COMBINED_CODE_AND_LEN + \
                                    DHCP6_SIZE_OF_IAID)
 STATIC_ASSERT (
-  DHCP6_IA_NA_T1_OFFSET (0) == 8,
+  DHCP6_OFFSET_OF_IA_NA_T1 (0) == 8,
   "Offset of IA_NA Inner option is + 8 past start of option"
   );
 
-#define DHCP6_IA_NA_T2_OFFSET(a)  (a + \
+#define DHCP6_OFFSET_OF_IA_NA_T2(a)  (a + \
                                    DHCP6_SIZE_OF_COMBINED_CODE_AND_LEN +\
                                    DHCP6_SIZE_OF_IAID + \
                                    DHCP6_SIZE_OF_TIME_INTERVAL)
 STATIC_ASSERT (
-  DHCP6_IA_NA_T2_OFFSET (0) == 12,
+  DHCP6_OFFSET_OF_IA_NA_T2 (0) == 12,
   "Offset of IA_NA Inner option is + 12 past start of option"
   );
 
@@ -199,9 +196,9 @@ STATIC_ASSERT (
 //    .                                                               .
 //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //
-#define DHCP6_STATUS_CODE_OFFSET(a)  (a + DHCP6_SIZE_OF_COMBINED_CODE_AND_LEN)
+#define DHCP6_OFFSET_OF_STATUS_CODE(a)  (a + DHCP6_SIZE_OF_COMBINED_CODE_AND_LEN)
 STATIC_ASSERT (
-  DHCP6_STATUS_CODE_OFFSET (0) == 4,
+  DHCP6_OFFSET_OF_STATUS_CODE (0) == 4,
   "Offset of status is + 4 past start of option"
   );
 

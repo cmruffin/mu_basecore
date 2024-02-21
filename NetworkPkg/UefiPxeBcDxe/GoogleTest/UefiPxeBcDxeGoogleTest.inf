@@ -18,6 +18,7 @@
 [Sources]
   UefiPxeBcDxeGoogleTest.cpp
   PxeBcDhcp6GoogleTest.cpp
+  PxeBcDhcp6GoogleTest.h
   ../PxeBcDhcp6.c
   ../PxeBcSupport.c
   ../../../MdePkg/Test/Mock/Library/GoogleTest/Protocol/MockRng.cpp

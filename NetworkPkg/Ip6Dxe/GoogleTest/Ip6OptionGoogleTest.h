@@ -1,10 +1,17 @@
-#ifndef __EFI_IP6_OPTION_GOOGLE_TEST_H__
-#define __EFI_IP6_OPTION_GOOGLE_TEST_H__
+/** @file
+  Exposes the functions needed to test the Ip6Option module.
+
+  Copyright (c) Microsoft Corporation
+  SPDX-License-Identifier: BSD-2-Clause-Patent
+**/
+
+#ifndef IP6_OPTION_HEADER_GOOGLE_TEST_H_
+#define IP6_OPTION_HEADER_GOOGLE_TEST_H_
 
 #include <Uefi.h>
 #include "../Ip6Impl.h"
 
-/** 
+/**
   Validate the IP6 option format for both the packets we received
   and that we will transmit. It will compute the ICMPv6 error message fields
   if the option is malformatted.
@@ -26,8 +33,8 @@ Ip6IsOptionValid (
   IN IP6_SERVICE  *IpSb,
   IN NET_BUF      *Packet,
   IN UINT8        *Option,
-  IN UINT16        OptionLen,
+  IN UINT16       OptionLen,
   IN UINT32       Pointer
   );
 
-#endif // __EFI_IP6_OPTION_GOOGLE_TEST_H__
+#endif // __IP6_OPTION_HEADER_GOOGLE_TEST_H__
